@@ -1,0 +1,67 @@
+\documentclass[11pt]{article}
+\usepackage{url,amsmath,setspace,amssymb,amsthm,fullpage}
+\usepackage{algorithm,algorithmic}
+
+% Scribe template modified from original created by UC Berkeley's EECS department
+
+\newcommand{\heading}[5]{
+   \renewcommand{\thepage}{#1-\arabic{page}}
+   \noindent
+   \begin{center}
+   \framebox[\textwidth]{
+     \begin{minipage}{0.9\textwidth} \onehalfspacing
+       {\bf STATS 710 -- Seq. Dec. Making with mHealth Applications} \hfill #2
+
+       {\centering \Large #5
+
+       }\medskip
+
+       {\it #3 \hfill #4}
+     \end{minipage}
+   }
+   \end{center}
+}
+
+\newcommand{\scribe}[4]{\heading{#1}{#2}{Instructors:
+Susan Murphy and Ambuj Tewari}{Scribe: #4}{Lecture #1: #3}}
+
+\input{macros}
+
+\bibliographystyle{plain}
+
+\begin{document}
+\scribe{1}{Sep 06, 2016}{Introduction}{Your name}
+
+\section{Sequential Decision Making in mHealth}
+
+This course will focus on the use of sequential decision making algorithms in mobile health applications to enable long term health behavior change and maintenance.
+Behavior change can lead to improved health outcomes in many health conditions including cardiovascular diseases, substance abuse, and mental illnesses.
+The promise of mobile health is that tailored interventions can be delivered to users at the right time, in the right context, as they go about living their daily lives.
+
+The basic sequential decision making protocol in mobile health is as follows.
+
+\renewcommand{\algorithmicfor}{\textbf{at}}
+\renewcommand{\algorithmicendfor}{\textbf{done}}
+\begin{algorithmic}[1]
+\FOR{a given decision point}
+\STATE mobile phone collects tailoring variables (the context) 
+\STATE a decision rule (or policy) maps the tailoring variables into an intervention option (the action) 
+\STATE mobile phone records the proximal outcome (interpreted as a reward, so higher is better) 
+\ENDFOR
+\end{algorithmic}
+\renewcommand{\algorithmicfor}{\textbf{for}}
+\renewcommand{\algorithmicendfor}{\algorithmicend\ \algorithmicfor}
+
+For example, in a project called HeartSteps that aims to maintain physical activity in user after cardiac rehab, context variables include GPS location, outside weather, label (such as walking, running, in vehicle)
+from google activity recognition, calendar busyness. There are two intervention options for momentary suggestions that are delivered on the smartphone's lock screen: $1$, i.e., provide a suggestion and 
+$0$, i.e., don't provide a suggestion. The proximal outcome or reward is the number of steps walked (measured via a wristband) in a specified time period, say an hour, following the suggestion.
+
+In this course we will look at increasingly sophisticated methods to sequentially choose actions to maximize sum of received rewards. The first class of methods, called {\em multi-armed bandits}, apply in situations
+where there is no contextual information available to guide action selection. This is not a realistic case in mHealth application but serves as a foundation for more sophisticated methods. 
+The second class of methods, called {\em contextual bandits}, do take into account contextual information but do not reason about delayed effects of actions on future contexts. Delayed effects can easily
+occur in mHealth applications. E.g., providing a too many suggestions to the user can affect the burden involved in using the app and reduce effectiveness of future suggestions since they might be ignored by the user.
+Finally we will look at general {\em reinforcement learning} algorithms that do take into account delayed effects.
+
+\end{document}
+
+
