@@ -30,7 +30,7 @@ Susan Murphy and Ambuj Tewari}{Scribe: #4}{Lecture #1: #3}}
 \bibliographystyle{alpha}
 
 \begin{document}
-\scribe{1}{Sep 06, 2016}{Introduction}{Your name}
+\scribe{1}{Sep 06, 2016}{Introduction}{Ambuj Tewari}
 
 \section{Sequential Decision Making in mHealth}
 
@@ -62,7 +62,7 @@ The second class of methods, called {\em contextual bandits}, do take into accou
 occur in mHealth applications. E.g., providing a too many suggestions to the user can affect the burden involved in using the app and reduce effectiveness of future suggestions since they might be ignored by the user.
 Finally we will look at general {\em reinforcement learning} algorithms that do take into account delayed effects.
 
-\section{Multiarmed Bandits}
+\section{Multiarmed Bandits: Regret and Basic Definitions}
 
 The name ``bandits" comes from ``one-armed bandit" which refers a slot machine in casinos operated by pulling a long arm at the side. These machines rob you of your money and hence the name ``bandits"!
 Now imagine having several arms to choose from. You do not know which arms are good and which ones are bad. So you will have \emph{explore} new arms in the hope of finding good ones that have not been used much
@@ -84,6 +84,89 @@ The multiarmed bandit (MAB) protocol is as follows.
 \STATE Learner receives reward $R_t = R^{A_t}_t$
 \ENDFOR
 \end{algorithmic}
+
+A deterministic learning algorithm $\la$ for MAB problems is a sequence of maps $\la_t$ that map the history at time $\history_t = (A_1,R_1,\ldots,A_{t-1},R_{t-1})$ to an action in $\actions$, i.e.,
+$A_t = \la_t(\history_t)$. A randomized learning algorithm can use its own private source of randomness in action selection.
+
+The expected regret of a learning algorithm $\la$ against distributions $(D_a)_{a \in \actions}$ is defined as
+\begin{equation}\label{eq:mabregret}
+\regret_T(\la, (D_a)_{a \in \actions}) := \mu_\star T - \E{\sum_{t=1}^T R_t}
+\end{equation}
+where $\mu_\star = \max_{a \in \actions} \mu_a$ is the maximum mean reward among all actions. Note that the expectation in the second term is with respect to two sources of randomness.
+First, the underlying rewards $R^a_t$ are random. Second, the learning algorithm itself can itself be randomized.
+
+There is another expression for the regret that will be convenient to have later. Define the indicator variable $I_{t,a}$ that turns on iff arm $a$ is selected at time $t$. Define the action counts
+\[
+N_t(a) = \sum_{s=1}^t I_{s,a} .
+\]
+We then have,
+\begin{equation}\label{eq:mabregret2}
+\regret_T(\la, (D_a)_{a \in \actions}) = \sum_{a \in \actions} \Delta_a \E{N_T(a)} = \sum_{a: \mu_a < \mu_\star} \Delta_a \E{N_T(a)}
+\end{equation}
+where $\Delta_a = \mu_\star - \mu_a$ is the gap between the mean reward of the best action and action $a$.
+
+\emph{Distribution specific} regret bounds are allowed to depend on properties of the individual reward distributions $D_a$ such as the gaps $\Delta_a$.
+
+To derive \emph{distribution free} regret bounds, we think of the distributions $D_a$ as coming from a parametric (e.g., Bernoulli distributions for binary valued rewards or Gaussian distributions for real valued rewards) or a nonparametric family
+(e.g., all distributions with support in $[0,1]$) denoted by $\distfam$. We can assess how ``good'' a learning algorithm $\la$ is by looking at its worst possible regret over distributions $D_a$:
+\[
+\regret_T(\la, \distfam) = \sup_{D_a \in \distfam} \regret_T (\la, (D_a)_{a \in \actions}) .
+\]
+A bound on $\regret_T(\la, \distfam)$ is a distribution free regret bound that holds no matter which reward distributions are faced by the learning algorithm as long as they are all in the family $\distfam$.
+
+A learning algorithm is called \emph{consistent} for a class $\distfam$ of distributions if, for all $D_a \in \distfam$,
+\[
+\lim_{T\to \infty} \frac{\regret_T(\la, (D_a)_{a \in \actions})}{T} = 0 .
+\]
+
+Finally, the minimax regret against a class $\distfam$ of reward distributions is given by
+\[
+\regret_T(\distfam) = \inf_{\la} \regret_T(\la, \distfam) .
+\]
+
+Determination of exact minimax rates is hard: we usually prove upper and lower bounds separately and try to make them match as much as we can.
+Upper bounds on the minimax regret can be established by proving a distribution free regret bound for a specific learning algorithm $\la$. Lower bounds have to reason about all 
+possible learning algorithms and usually rely on information theoretic arguments.
+
+\section{A General Consistency Result}
+
+Robbins \cite{robbins1952some} proved a general consistency result for two armed bandit problems that just relies on law of large numbers and easily extends to the case of $K$ arms.
+Let $\distfam$ be all distributions with a finite mean.
+
+Consider the following learning algorithm that is referred to as ``certainty equivalence with forcing'' in the control literature. Pre-select an infinite sequence of ``forced exploration" time points
+\[
+\tau_{a,1} < \tau_{a,2} < \ldots
+\]
+such that the time points are disjoint over $a \in \actions$ and $t_{a,1} = a-1$ (i.e., we start by selecting each action from $0$ through $K-1$ once). At any given time point $t$, if it one
+of the forced exploration time points for an action $a$, select action $a$. Otherwise, form estimates $\hat{\mu}_{t-1,a}$ of $\mu_a$ using the sample mean over all previous exploration rounds for action $a$, and select the
+one with maximum value of $\hat{\mu}_{t-1,a}$ (breaking ties, say, in favor of the numerically smaller action).
+
+Define the indicator variables $I'_{t,a}, I''_{t,a}$ to be on iff action $a$ was selected at time $t$ because of exploration, exploitation reasons respectively. Define the counts $N'_t(a), N''_t(a)$ in the same way as we defined
+$N_t(a)$. Note that $N_t(a) = N'_t(a) + N''_t(a)$. From~\eqref{eq:mabregret2}, we have
+\begin{align*}
+\regret_T(\la, (D_a)_{a \in \actions}) &= \sum_{a: \mu_a < \mu_\star} \Delta_a \E{N_T(a)} \\
+&= \sum_{a: \mu_a < \mu_\star} \Delta_a \E{N'_T(a)} + \sum_{a: \mu_a < \mu_\star} \Delta_a \E{N''_T(a)} 
+\end{align*}
+Note that
+\[
+N'_T(a) = |\left\{ \tau_{a,i} \::\: 1 \le \tau_{a,i} \le T \right\}|
+\]
+is deterministic. Let us make the assumption that the sequence of exploration points have density zero, i.e., $N'_T(a)/T \to 0$. Then, we just need to ensure that, for all $a \in \actions$,
+\[
+\frac{ \E{N''_T(a)} }{T} \to 0 .
+\]
+
+Now note that we can write the previous quantity as a Cesaro sum:
+\[
+\frac{ \E{N''_T(a)} }{T} = \frac{\sum_{t=1}^T \E{I''_{t,a}}} {T} .
+\]
+We know that, if a sequence converges to $0$, then so does its Cesaro sum. So the only thing that remains to be shown is that $\E{I''_{t,a}} \to 0$ as $t \to \infty$ for any 
+strictly suboptimal action $a$. If action $a$ is selected as a result of exploitation at time $t$, it must be that $\hat{\mu}_{t-1,a} \ge \hat{\mu}_{t-1,a^\star}$ for any optimal
+action $a^\star$. But this can only occur if either $|\hat{\mu}_{t-1,a} - \mu_a| \ge \Delta_a/2$ or $|\hat{\mu}_{t-1,a^\star} - \mu_{a^\star}| \ge \Delta_a/2$. Therefore,
+\[
+\E{I''_{t,a}} \le \prob{|\hat{\mu}_{t-1,a} - \mu_a| \ge \Delta_a/2} + \prob{|\hat{\mu}_{t-1,a^\star} - \mu_{a^\star}| \ge \Delta_a/2} .
+\]
+Both terms on the RHS converge to zero by the law of large numbers.
 
 \bibliography{stats710}
 
