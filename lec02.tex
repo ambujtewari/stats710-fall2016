@@ -52,30 +52,27 @@ Thus, $\la$ is an input to the regret formulation as it selects the action that 
 
 Almost all algorithms begin with a circuit of sampling each arm once, resulting in $a_1, \ldots a_K$ being predetermined, where $K$ represents the total number of arms.  That way, we ensure that each arm is sampled at least once.
 
-The optimal result of an algorithm if the situation is distribution-free has a bound of $\sqrt{t}$.  However, in the case of distribution free bounds, the rate may be $t^{2/3}$.  This formal result should hold for any algorithm that separates the exploration and exploitation processes.  For distribution specific situations, one should learn when to explore and when to exploit.
-%A reference to this was mentioned in class, but Ambuj would need to provide it.
+The optimal regret of an algorithm in the distribution-free setting with bounded (or, more generally, subgaussian) rewards scales as $O(\sqrt{T})$.  However, in the case of algorithms that separate exploration from exploitation, the rate is worse: $O(T^{2/3})$.  For some formal lower bounds that hold for any algorithm that separates the exploration and exploitation see \cite{dani2006robbing} (Section 6) and \cite{garivier2016explore}. Therefore, the minimax regret would not be achieved through separation policy, where the exploration and exploitation phases are separated.
 
-The minimax would not be achieved through separation policy, where the exploration and exploitation phases are separated.
-
-The Robbins algorithm would still work if the rewards were not iid.  The most relaxed condition that is allowable under WLLN is asymptotic independence, so this is the minimum condition for the rewards.
+The Robbins algorithm would still work if the rewards were not iid. All we need is the WLLN to hold for rewards. For example, we can allow for various mixing conditions that guarantee asymptotic independence, so this conditions would still permit a consistency proof to go through.
 
 \section{Algorithm Design Principles/Heuristics}
 \subsection{Robbins (1952) strategy}
-One high level strategy is the exploration/exploitation discussed in Lecture 1.  This strategy has different names depending on the field.  Typically, electrical engineering calls this algorithm ``certainty equivalence with forcing'', while computer scientists use the term ``phased exploration with greedy exploitation''.  While there may be some differences at the detailed level between these two phrases, they are closely related to each other
+One high level strategy is the exploration/exploitation discussed in Lecture 1.  This strategy has different names depending on the field.  Typically, electrical engineering calls this algorithm ``certainty equivalence with forcing'', while computer scientists use the term ``phased exploration with greedy exploitation''.  While there may be some differences at the detailed level between these two phrases, they are closely related to each other.
 
 Important characteristics of Robbins' strategy include that we have to be looking at an infinite sequence of time and that there is a vanishing density of any point being an exploration time.  Exploration times have to be pre-selected before any process begins. 
 
-\subsection{$\epsilon-greedy$}
-This is similar to Robbins' method but the next step is probabilistically selected rather than pre-determined.
+\subsection{$\epsilon$-greedy}
+This is similar to Robbins' method but the exploration steps are probabilistically selected rather than pre-determined.
 
-In this randomization-based algorithm, a coin is flipped at each round.  If it comes up heads, you explore, i.e. take a random action, usually based on a constant/uniform selection of the arms.  If it comes up tails, you behave ``greedily'', i.e. go with the maximum sample mean at that point.  One important point to note is that the coin's probability can change with time.  A lot of papers use constant $\epsilon$.  A potential project idea is to understand mathematically/theoretically the selection of $\epsilon$.  
+In this randomization-based algorithm, a coin is flipped at each round.  If it comes up heads, you explore, i.e. take a random action, usually based on a constant/uniform selection of the arms.  If it comes up tails, you behave ``greedily'', i.e. go with the maximum sample mean at that point.  One important point to note is that the coin's probability can change with time.  A lot of papers use constant $\epsilon$.  A potential project idea is to understand mathematically/theoretically the selection of $\epsilon$ especially in the presence of non-stationarity of reward distributions.  
 
 \subsection{Index-based algorithms}
-One example of an index-based algorithm is the upper confidence bound (UCB).  In these algorithms, the exploration phase is not separated from the exploitation phase.  Arms that are not sampled enough are giving an ``exploration bonus'' to entice the algorithm to sample more often from those arms.
+One example of an index-based algorithm is the upper confidence bound (UCB) that we will study later.  In these algorithms, the exploration phase is not separated from the exploitation phase.  Arms that are not sampled enough are giving an ``exploration bonus'' to entice the algorithm to sample more often from those arms.
 
 \subsection{Thompson/posterior sampling}
 
-This method follows the principles of Bayesian methodology and allows an understanding of the parameter space.
+This method follows the principles of Bayesian methodology which is best illustrated in the parametric case.
 
 For a vector of parameters $\overrightarrow {\theta} = (\theta_0, \ldots, \theta_{K-1})$, a prior distribution is assigned to $\overrightarrow {\theta} : p(\overrightarrow{\theta})$.  For $\overrightarrow{\theta}$, there is an optimal distribution.  We can sample from the Bayesian posterior to obtain estimates of the optimal parameter: 
 \[
@@ -87,71 +84,73 @@ In this case, rewards can be designed under a parametric family but can be analy
 There are some who are trying to unify the index-based and Thompson algorithms, which could work into another potential project idea.
 
 \subsection{Softmax/Boltzmann exploration}
-This method softens the greedy component of the $\epsilon$-greedy algorithm.  Instead of pursuing the max, the softmax is used.  In this case, $\mathbb{P}(a_{t}=a) \propto \frac{exp(\hat{\mu}_{t-1,a})}{\eta}$, where $\hat{\mu}_{t-1,a}$ represents the estimate of the mean reward of $a$ and $\eta$ represents the temperature.  As $\eta\rightarrow 0$, the probability will concentrate on the maximum reward, but this method is a way of softening the constant selection of the max.
+This method softens the greedy component of the $\epsilon$-greedy algorithm.  Instead of pursuing the max, the softmax is used.  In this case, $\mathbb{P}(a_{t}=a) \propto \frac{\exp(\hat{\mu}_{t-1,a})}{\eta}$, where $\hat{\mu}_{t-1,a}$ represents the estimate of the mean reward of $a$ and $\eta$ represents the ``temperature'' (this terminology comes from statistical physics).  As $\eta\rightarrow 0$, the probability will concentrate on the greedy actions: i.e., those with maximum estimated reward, but this method is a way of softening the selection of the max.
 
-There is no known finite time analysis of this to the best of Ambuj's knowledge.  A variant of Boltzmann exploration changed the softmax to the softmix, which combines softmax with another layer of uniform sampling and behaves similarly to an $\epsilon$-greedy algorithm mixed with softmax \cite{cesabianchi1998finite}.  The best assumption for this change is that the softmix was substituted for the softmax since the softmax does not (easily) work within a finite time. 
+There is no known finite time analysis of this to the best of our knowledge.  A variant of Boltzmann exploration changed the softmax to the softmix, which combines softmax with another layer of uniform sampling and behaves similarly to an $\epsilon$-greedy algorithm mixed with softmax \cite{cesabianchi1998finite}.
 
 \subsection{Bootstrap}
-Also called the ``poor man's Bayes'', the bootstrap can be used by subsampling to create more parameter estimates.  We use the histogram created from the subsampling parameter estimates to get an idea of the parameters.  We are unlikely to discuss this method in class.
+Also called the ``poor man's Bayes'', the bootstrap can be used by subsampling to create a number of parameter estimates.  We use the histogram created from the subsampling parameter estimates to get an idea of the parameter distribution.  We are unlikely to discuss this method in class but see \cite{eckles2014thompson,baransi2014sub,osband2015bootstrapped} for related ideas.
  
-\section{Finite-time $\epsilon$-greedy}
+\section{Finite-time regret analysis of $\epsilon$-greedy}
 
-For this section, we assume that all rewards are bounded.  After sampling each arm once, the following algorithm is executed:
+For this section, we assume that all rewards are bounded, say in $[0,1]$.  After sampling each arm once, the following algorithm is executed:
 
-\renewcommand{\algorithmicfor}{\textbf{for}}
-\renewcommand{\algorithmicendfor}{\textbf{done}}
 \begin{algorithmic}[1]
 \FOR{$t=1$ to $T$}
-\STATE Learner selects random arm $a \in \actions$ if randomization rule falls within probability $\epsilon_{t}$
-\STATE Learner selects $a_t \in \actions$ where $a_t := argmax_{a \in \actions} \hat{\mu}_{t-1, a}$ if randomization rule falls within probability $1-\epsilon_{t}$.
+\STATE Learner selects random arm $a \in \actions$ with probability $\epsilon_{t}$
+\STATE Learner selects $a_t \in \actions$ where $a_t := \argmax_{a \in \actions} \hat{\mu}_{t-1, a}$ with remaining probability $1-\epsilon_{t}$.
 \ENDFOR
 \end{algorithmic}
 
 %Under this setting, $a_t$ has probability $1-\epsilon_t(\frac{K-1}{K})$ of being selected, while all other actions have probability $\frac{\epsilon_t}{K}$ of being selected.
 
-The randomization rule (coin flip) occurs independent of nature.
+The coin flips used to decide whether the learning algorithm explores by taking a random action are assumed to occur independent of nature.
 
-\subsection{Theorem}
+\subsection{Regret bound}
 
-Suppose $D_a$ has support in $[0, 1]$.  Define $\epsilon_t = min\{1, \frac{cK}{d^2t}\}$, where $K$ is the number of actions possible, $t$ is the time, $c > 5$, and $0 \le d \le min_{a:\mu_a < \mu_\star} \Delta_a$   Run $\epsilon_t$-greedy algorithm under these constraints, and fix a suboptimal arm $a \in \actions$.  Then the probability that $\epsilon_t$-greedy chooses $a$ at $t$, for $t \ge \frac{cK}{d}$, is at most $\frac{c}{d^2t}+o(\frac{1}{t})$.  That is to say, jointly over the algorithm and nature for every $t$ large enough, 
+\begin{theorem}
+Suppose $D_a$ has support in $[0, 1]$.  Define $\epsilon_t = \min\{1, \frac{cK}{d^2t}\}$, where $K$ is the number of actions possible, $t$ is the time, $c > 5$, and $0 \le d \le min_{a:\mu_a < \mu_\star} \Delta_a$   Run $\epsilon_t$-greedy algorithm under these constraints, and fix a suboptimal arm $a \in \actions$.  Then the probability that $\epsilon_t$-greedy chooses $a$ at $t$, for $t \ge \frac{cK}{d}$, is at most $\frac{c}{d^2t}+o(\frac{1}{t})$.  That is to say, jointly over the algorithm and nature for every $t$ large enough, 
 \[
 \ \mathbb{P}(A_t = a) \le \frac{c}{d^2t} + o(\frac{1}{t})
 \]
+\end{theorem}
 
 One question associated with this particular theorem is how to select $d$.  One hopes to select the largest $d$ possible, but $d$ also must be less than the unknown gap between $a$ and the optimal arm.  
-The algorithm is sensitive to the choice of $d$.  If $d=0$, then the bound blows up, making all actions appear optimal and generating an unhelpful algorithm (especially if the reward is assumed to be bounded).  The minimum bound possible is the best, as this will minimize the regret.
+The algorithm is sensitive to the choice of $d$. If $d=0$, then the bound blows up and becomes useless (especially if the reward is assumed to be bounded).
 
-The rate of growth of the regret in this case is $log(t)$, meaning that the reward will accumulate at this rate.
+The rate of growth of the regret in this case is $\log(t)$.
 
 \subsection{Corollary}
 \[
-\ \regret_T(\epsilon_t-greedy, (D_a)_{a \in \actions}) \le \frac{c}{d^2} log(T) (\sum_{a \in \actions} \Delta_a)
+\ \regret_T(\epsilon_t\text{-greedy}, (D_a)_{a \in \actions}) \le \frac{c}{d^2} \log(T) (\sum_{a \in \actions} \Delta_a)
 \]
 Here, $\sum_{a \in \actions} \Delta_a$ represents the suboptimality gap.  One does not need to condition the addition on the fact that $\mu_a < \mu_\star$ as before, since if $\mu_a = \mu_\star$, then $\Delta_a = 0$.  
+
+We need two facts (concentration inequalities) before we begin the proof (see next lecture).
 
 \subsection{Fact 1: Hoeffding-Azuma concentration inequality}
 Let $X_1, X_2, \ldots$ be random variables with range $[0, 1]$ and $\mathbb{E}(X_t | X_{1:t-1}) = \mu$, where $X_{1:t-1}$ represents $X_1, X_2, \ldots, X_{t-1}$.  Then 
 \[
-\ \forall \delta > 0, \mathbb{P}(\frac{\sum_{i=1}^t X_i}{t} - \mu \ge \delta) \le exp(-2t\delta^2)
+\ \forall \delta > 0, \prob{\frac{\sum_{i=1}^t X_i}{t} - \mu \ge \delta} \le \exp(-2t\delta^2)
 \]
  and 
  \[
- \ \forall \delta >0, \mathbb{P}(\mu -\frac{\sum_{i=1}^t X_i}{t} \ge \delta) \le exp(-2t\delta^2)
+ \ \forall \delta >0, \prob{\mu -\frac{\sum_{i=1}^t X_i}{t} \ge \delta} \le \exp(-2t\delta^2)
  \]
 
 Our random variables in this case could be iid, although this is not a requirement for this fact.
 
 \subsection{Fact 2: Bernstein concentration inequality}
-As before, let $X_1, X_2, \ldots$ be random variables with range $[0,1]$ and $\sum_{i=1}^t Var(X_i \mid X_{1:i-1}) = \sigma^2$.  Then 
+As before, let $X_1, X_2, \ldots$ be random variables with range $[0,1]$ and $\sum_{i=1}^t \mathrm{Var}(X_i \mid X_{1:i-1}) = \sigma^2$.  Then 
 \[
-\ \forall \delta>0, \mathbb{P} (\sum_{i=1}^t X_i - \mathbb{E} (\sum_{i=1}^t X_i) \ge \delta) \le exp(\frac{-\delta^2/2}{\sigma_t^2+ \delta/2})
+\ \forall \delta>0, \prob{\sum_{i=1}^t X_i - \E{\sum_{i=1}^t X_i} \ge \delta} \le \exp(\frac{-\delta^2/2}{\sigma_t^2+ \delta/2})
 \]
 and 
 \[
-\ \forall \delta >0, \mathbb{P} (\mathbb{E} (\sum_{i=1}^t X_i) - \sum_{i=1}^t X_i \ge \delta) \le exp(\frac{-\delta^2/2}{\sigma_t^2+ \delta/2})
+\ \forall \delta >0, \prob{ \E{\sum_{i=1}^t X_i} - \sum_{i=1}^t X_i \ge \delta} \le \exp(\frac{-\delta^2/2}{\sigma_t^2+ \delta/2})
 \]
 
-Our random variables in this case may be independents but not iid or identically distributed.
+The random variables we will apply Bernstein's inequality to will be independent but not identically distributed.
 
 \bibliography{stats710}
 \end{document}
