@@ -1,0 +1,180 @@
+\documentclass[11pt]{article}
+\usepackage{url,amsmath,setspace,amssymb,amsthm,fullpage}
+\usepackage{algorithm,algorithmic}
+
+% Scribe template modified from original created by UC Berkeley's EECS department
+
+\newcommand{\heading}[5]{
+   \renewcommand{\thepage}{#1-\arabic{page}}
+   \noindent
+   \begin{center}
+   \framebox[\textwidth]{
+     \begin{minipage}{0.9\textwidth} \onehalfspacing
+       {\bf STATS 710 -- Seq. Decision Making with mHealth Applications} \hfill #2
+
+       {\centering \Large #5
+
+       }\medskip
+
+       {\it #3 \hfill #4}
+     \end{minipage}
+   }
+   \end{center}
+}
+
+\newcommand{\scribe}[4]{\heading{#1}{#2}{Instructors:
+Susan Murphy and Ambuj Tewari}{Scribe: #4}{Lecture #1: #3}}
+
+\input{macros}
+
+\bibliographystyle{alpha}
+
+\begin{document}
+\scribe{3}{Sep 13, 2016}{Proof of theorem for $\epsilon$-greedy algorithm}{Henry Oskar Singer}
+
+\section{$\epsilon$-greedy algorithm, theorem, and proof}
+
+\noindent First, it is convenient to introduce some notation. 
+
+\begin{itemize}
+	\item Let $\bar{R}_t^a = \frac{1}{t} \sum_{i=1}^t R^a_i$ denote the sample mean of the rewards resulting from making $t$ pulls on arm $a$.
+	\item Let $*$ denote quantities depending on $a^*$, the optimal action in $\actions$. Take as example the sampling count for $a^*$ after $T$ rounds $N^*_T = N_T \left( a^* \right)$.
+\end{itemize} 
+
+\noindent Next, we review the $\epsilon$-greedy algorithm \cite{auer2002finite}.
+
+\begin{algorithm}
+\begin{algorithmic}[1]
+\STATE \textbf{Initialize:} Play each arm once.
+\FOR{$t=1$ to $T$}
+\STATE With probability $1 - \epsilon_t$, play $\argmax_{a \in \actions} \bar{R}_t^a$.
+\STATE Otherwise, choose uniformly at random some action $a \in \actions$, and play this action.
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+\noindent Next, we give a theorem that guarantees a high probability of selecting the optimal arm.
+
+\begin{theorem} \label{bound}
+	For reward distribution $D_a$ with support in $[0,1]$, $0 < d \leq \textnormal{min}_{a : \mu_a < \mu_*}\Delta_a$. For $c > 5$ and any suboptimal arm $a \in \actions$, for $t > \frac{ck}{d^2}$, after $t$ rounds,
+	
+	\begin{align*}
+		\prob{A_t = a} \leq \frac{c}{d^2 t} + o\left( \frac{1}{t} \right) \textnormal{.}
+	\end{align*}
+\end{theorem}
+
+\noindent \textit{Proof.} Consider a $k$-armed bandit and constants $c$ and $d$ as described in Theorem~\ref{bound}. Set $\epsilon_t = \min \left \{ 1, \frac{ck}{d^2 t} \right \}$, so for $t \geq \frac{ck}{d^2}$, $\epsilon_t = \frac{ck}{d^2 t}$. Set $x_0 = \frac{1}{2} \left( \frac{1}{k} \sum_{i=1}^t \epsilon_i \right)$. The value inside the parentheses corresponds to the expected number of times we will pull an arm due to exploration.\\
+
+\noindent Now, we introduce the first inequality on the road to the final bound. Note that this must be an inequality because of the possibility of tie-breaking among multiple $a$'s or the possibility that multiple $a$'s majorize the empirical mean of $a*$ with different empirical means.
+
+\begin{align}
+	\prob{A_t = a} \leq \frac{\epsilon_t}{k} + \left( 1 - \epsilon_t \right) \prob{\bar{R}_{N_{t-1}\left( a \right)}^a \geq \bar{R}_{N_{t-1}^*}^*} \textnormal{,} \label{line1}
+\end{align}
+
+\noindent where $A_t$ is the action played at time $t$. Since the first term on the RHS of this inequality corresponds to the first term in the final bound, we can focus on bounding the second term. Watch out for the switch from $t - 1$ to $t$ in the next line.
+
+\begin{align}
+	\prob{\bar{R}_{N_{t-1}\left( a \right)}^a \geq \bar{R}_{N_{t-1}^*}^*}\ \leq\ \prob{\bar{R}_{N_{t-1}^*}^* \leq \mu_* - \frac{\Delta_a}{2}} + \prob{\bar{R}_{N_{t-1}\left( a \right)}^a \geq \mu_a + \frac{\Delta_a}{2}} \textnormal{,} \label{line2}
+\end{align}
+
+\noindent where $\mu_a$ is the population mean of the reward of arm $a$, and $\Delta_a = \mu_* - \mu_a$. This inequality comes from a union bound on the two events that result in the event inside the parentheses on the LHS. We cannot yet apply the Hoeffding-Azuma inequality because $N_t \left( a \right)$ is a random quantity in the $\epsilon$-greedy algorithm. To account for this, we just need to show that $N_t \left( a \right)$ is ``large enough" to result in a sufficiently stable empirical mean estimate. We start by using conditional probability to factor out the randomness of $N_t \left( a \right)$ from $\bar{R}_{N_{t-1}\left( a \right)}^a$.
+
+\begin{align}
+\prob{\bar{R}_{N_t\left( a \right)}^a \geq \mu_a + \frac{\Delta_a}{2}}\ &=\ \sum_{i=1}^t \prob{N_t \left( a \right) = i \land \bar{R}_i^a \geq \mu_a + \frac{\Delta_a}{2}} \label{line3}\\
+&=\ \sum_{i=1}^t \prob{N_t \left( a \right) = i\ |\ \bar{R}_i^a \geq \mu_a + \frac{\Delta_a}{2}} \prob{\bar{R}_i^a \geq \mu_a + \frac{\Delta_a}{2}} \label{line4} \\ 
+&\leq\ \sum_{i=1}^t \prob{N_t \left( a \right) = i\ |\ \bar{R}_i^a \geq \mu_a + \frac{\Delta_a}{2}} \cdot e^{\frac{-\Delta_a i}{2}} \label{line5}\\
+&\leq\  \sum_{i=1}^{\lfloor x_0 \rfloor} \prob{N_t \left( a \right) = i\ |\ \bar{R}_i^a \geq \mu_a + \frac{\Delta_a}{2}} + \sum_{i = \lfloor x_0 \rfloor + 1}^t e^{\frac{-\Delta_a i}{2}} \textnormal{,} \label{line6}
+\end{align}
+
+\noindent where line~\ref{line5} follows from applying Hoeffding-Azuma to the second factor in each term of the sum on the RHS, made possibly by the fact that $i$ is not random, and line~\ref{line6} follows from the observation that the factors we removed are upper-bounded by $1$. The choice of which factor to keep in each partition of the two sums comes from the fact that the exponential factor is larger when $i$ is small and smaller when $i$ is large, i.e. we are keeping the smallest possible of the two factors to find a tighter bound. Now, we show a bound on the terms in the first sum for $i \leq \lfloor x_0 \rfloor$.
+
+\begin{align}
+	\prob{N_t \left( a \right) = i\ |\ \bar{R}_i^a \geq \mu_a + \frac{\Delta_a}{2}}\ &\leq\ \prob{N_t \left( a \right) \leq x_0\ |\ \bar{R}_i^a \geq \mu_a + \frac{\Delta_a}{2}} \label{line7}\\
+	&\leq\ \prob{N_t^{\textnormal{explore}} \left( a \right) \leq x_0\ |\ \bar{R}_i^a \geq \mu_a + \frac{\Delta_a}{2}} \label{line8}\\
+	&\leq\ \prob{N_t^{\textnormal{explore}} \left( a \right) \leq x_0} \textnormal{,} \label{line9}
+\end{align}
+
+\noindent where $N_t^{\textnormal{explore}} \left( a \right)$ is the number of times we have pulled arm $a$ in an exploration round. Since this must be upper-bounded by the total number of times we have pulled arm $a$, line~\ref{line8} follows. Line~\ref{line9} follows from the fact that exploration rounds are not dependent on the empirical mean estimators. Overall, we now have
+
+\begin{align}
+	\prob{\bar{R}_{N_t\left( a \right)}^a \geq \mu_a + \frac{\Delta_a}{2}}\ \leq\ x_0 \cdot \prob{N_t^{\textnormal{explore}} \left( a \right) \leq x_0} + \frac{2}{\Delta_a^2} \cdot e^{\frac{-\Delta_a^2 \lfloor x_0 \rfloor}{2}} \textnormal{.} \label{line10}
+\end{align}
+
+\noindent We now bound $\prob{N_t^{\textnormal{explore}} \left( a \right) \leq x_0}$. To do this, we need to get an expression for the mean and a bound on the variance of $N_t^{\textnormal{explore}} \left( a \right)$ so that we can apply Bernstein's inequality to prove that $\prob{N_t^{\textnormal{explore}} \left( a \right) \leq x_0}$ is very small. We start by defining 
+
+\begin{align}
+	I_{i,a}^{\textnormal{explore}}\ =\ \left \{ \begin{array}{l r}
+	1 & \textnormal{if } a \textnormal{ pulled at time } i \textnormal{ for exploration}\\
+	0 & \textnormal{o.w.}
+	\end{array} \right. \textnormal{.}
+\end{align} 
+
+\noindent We can now express $N_t^{\textnormal{explore}} \left( a \right)$ as a sum of indicators, $N_t^{\textnormal{explore}} \left( a \right) = \sum_{i=1}^t I_{i,a}^{\textnormal{explore}}$. Because we have predetermined and parameterized the randomization in the $\epsilon$-greedy algorithm, we know that $\E{I_{i,a}^{\textnormal{explore}} = \frac{\epsilon_i}{k}}$. Recalling that $x_0 = \frac{1}{2} \left( \frac{1}{k} \sum_{i=1}^t \epsilon_i \right)$, we can conclude that $\E{N_t^{\textnormal{explore}} \left( a \right)} = 2 x_0$. Now, we bound the variance.
+
+\begin{align}
+Var \left( N_t^{\textnormal{explore}} \left( a \right) \right)\ &=\ \sum_{i=1}^t Var \left( I_{i,a}^{\textnormal{explore}} \right) \label{line12}\\
+&\leq\ \sum_{i=1}^t \frac{\epsilon_i}{k} \label{line13}\\
+&=\ 2 x_0 \textnormal{,}
+\end{align}
+
+\noindent where line~\ref{line12} follows from the independence of the indicators, and line~\ref{line13} follows from the decision to explore or exploit being a Bernoulli random variable, which has variance upper-bounded by mean. Applying Bernstein's inequality, we get
+
+\begin{align}
+	\prob{N_t^{\textnormal{explore}} \left( a \right) \leq x_0}\ &=\ \prob{N_t^{\textnormal{explore}} \left( a \right) \leq 2x_0 - x_0}\\
+	&=\ \prob{N_t^{\textnormal{explore}} \left( a \right) \leq \E{N_t^{\textnormal{explore}} \left( a \right)} - x_0}\\
+	&\leq\ e^{\frac{-x_0^2 / 2}{2x_0 + x_0 / 2}}\\
+	&=\ e^{\frac{-x_0}{5}} \textnormal{.}
+\end{align}
+
+\noindent Now, plugging this bound into the inequality~\ref{line10}, we get
+
+\begin{align}
+	\prob{\bar{R}^a_{N_t \left( a \right)} \geq \mu_a + \frac{\Delta_a}{2}}\ \leq\ x_0 \cdot e^{\frac{-x_0}{5}} + \frac{2}{\Delta_a^2} \cdot e^{\frac{-\Delta_a^2 \lfloor x_0 \rfloor}{2}} \textnormal{.} \label{line19}
+\end{align}
+
+\noindent Expanding $x_0$, we get the bound
+
+\begin{align}
+	x_0\ \geq\ \frac{c}{d^2} \cdot \log \left( \frac{td^2e}{2ck} \right) \textnormal{.} \label{line20}
+\end{align}
+
+Note that we bounded just one of the two probabilities from the RHS of equation~\eqref{line2}. But the other probability can be bounded in exactly the same way.
+
+Plugging the bounds \eqref{line19} and~\eqref{line20} back into inequalities~\eqref{line1} and~\eqref{line2} and invoking our chosen expression for the value of $\epsilon_t$, we get the following.
+
+\begin{align}
+ \prob{A_t = a}\ \leq\ \frac{c}{d^2 t} &+ 2 \left( \frac{c}{d^2} \ln \frac{(n - 1) \cdot d^2 e^{1/2}}{ck} \right) \left( \frac{ck}{(t - 1) \cdot d^2 e^{1/2}} \right)^{c/(5d^2)}\\ 
+ &+ \frac{4e}{d^2} \cdot \left(  \frac{ck}{(t - 1) \cdot d^2 e^{1/2}} \right)^{c/2} \textnormal{.}
+\end{align}
+
+Note that the last two terms are $o(1/t)$ if $c > 5$, and Theorem~\ref{bound} follows. \hfill $\blacksquare$ \\
+
+\section{Additional Discussion}
+
+\subsection{The Sub-Gaussian Property}
+Theorem~\ref{bound} still applies to rewards that are distributed with unbounded support as long as the random variables corresponding to the rewards possess the \textit{sub-Gaussian} property, which is defined below.
+
+\begin{definition}
+A random variable $X$ is sub-Gaussian if and only if $\exists c_1, c_2$ such that
+
+\begin{align*}
+\prob{\left| X \right| > t} \leq c_1 e^{-c_2 t^2} \textnormal{.}
+\end{align*}
+\end{definition}
+
+This property ensures that the density of a reward random variable decays like a Gaussian random variable (or faster) as the reward value deviates from the random variable's mean. The key concentration inequality used in the proof above
+holds not just for sums of iid bounded random variables but also hold for sums of iid subgaussian random variables. See, for example, Proposition 5.10 (Hoeffding type inequality) in
+Prof. Roman Vershynin's ``Introduction to the non-asymptotic analysis of random matrices'':
+
+\url{https://arxiv.org/pdf/1011.3027v7.pdf}
+
+\subsection{Why $\epsilon_t = \frac{1}{t}$?}
+It was asked in lecture whether a better rate could be attained by choosing a different setting of $\epsilon_t$. The answer was that this is not possible because even for Bernoulli rewards the $O(\log T)$ distribution-dependent rate is known to 
+be not improvable. See, for example, Theorem 2.2 (distibution-dependent lower bound) in Bubeck and Cesa-Bianchi's survey~\cite{bubeck2012regret}.
+ 
+However, in the case where the rewards are distributed with heavier tails, it may require a different choice of $\epsilon_t$ (and perhaps even a different estimator of the mean instead of the sample mean) to result in the optimal rates.
+
+\bibliography{stats710.bib}
+\end{document}
+
+
