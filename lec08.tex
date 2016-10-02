@@ -1,0 +1,145 @@
+\documentclass[11pt]{article}
+\usepackage{url,amsmath,setspace,amssymb,amsthm,fullpage}
+\usepackage{algorithm,algorithmic}
+
+% Scribe template modified from original created by UC Berkeley's EECS department
+
+\newcommand{\heading}[5]{
+   \renewcommand{\thepage}{#1-\arabic{page}}
+   \noindent
+   \begin{center}
+   \framebox[\textwidth]{
+     \begin{minipage}{0.9\textwidth} \onehalfspacing
+       {\bf STATS 710 -- Seq. Dec. Making with mHealth Applications} \hfill #2
+
+       {\centering \Large #5
+
+       }\medskip
+
+       {\it #3 \hfill #4}
+     \end{minipage}
+   }
+   \end{center}
+}
+
+\newcommand{\scribe}[4]{\heading{#1}{#2}{Instructors:
+Susan Murphy and Ambuj Tewari}{Scribe: #4 }{Lecture #1: #3}}
+
+\input{macros}
+
+\bibliographystyle{alpha}
+
+\begin{document}
+\scribe{8}{Sep 29, 2016}{The non-stochastic MAB problem}{Young Jung}
+\section{The non-stochastic MAB problem}
+\subsection{Introduction}
+\begin{itemize}
+    \item Original paper: Auer et al. \cite{auer2002nonstochastic}
+    \item This lecture mainly focuses on chapter 3 of Bubeck and Cesa-Bianchi \cite{bubeck2012regret}
+\end{itemize}
+Until now, we have assumed that reward is given as an i.i.d. sequence for each action. However, we will throw out this assumption, and the nature (adversary) chooses the reward matrix in an arbitrary fashion. In other words, if our MAB problem consists of $K$ arms and $T$ time steps, the nature decides the reward matrix $(r_{a, t})_{a\in\actions, t \in [T]}$, which a player cannot observe. At time $t$, if the learner picks $A_t = a$, then it observes the reward $r_{a, t}$. Note that the learner only observes just one element of $t^{th}$ column. If the entire column is revealed, we call this problem as a full information problem. 
+
+We usually assume the reward matrix is bounded, and specifically throughout the lecture, we will assume every element is in $[0, 1]$. Note that unlike stochastic case, we have at most one randomness from the strategy. Thus if the leaner is deterministic, there is no randomness. 
+
+We can define regret as a difference from the best row-sum:
+$$
+\regret_0(\la, (r_{a, t})_{a\in\actions, t \in [T]}) = \max_{a \in \actions} \sum_t r_{a, t} - \sum_t r_{A_t, t}
+$$
+It will be shown shortly that a deterministic algorithm cannot attain sublinear regret and a random algorithm can attain $O(\sqrt{TK\log K})$ regret. In full information case, one can have minimax regret of $O(\sqrt{T \log K})$. Thus we suffer a bigger regret of order $\sqrt K$ by not looking at whole column. 
+
+One can also define the regret using different best cases. For example, instead of taking maximum row-sum, we can pick maximum value from each column:
+$$
+\regret_1(\la, (r_{a, t})_{a\in\actions, t \in [T]}) = \max_{a_1, \cdots , a_T} \sum_t r_{a_t, t} - \sum_t r_{A_t, t}
+$$
+This is also a legitimate way to define regret, but this might not that interesting in a sense that there is no learning algorithm that can attain sublinear regret. We can calibrate this definition by introducing new notion of \textit{switch}. That is to say, we are allowed to switch the action at most certain number of times. If we are not allowed to switch, then we get $\regret_0$, and if there is no restriction, then we get $\regret_1$. If we constrain the number of switches far less than $T$, then it is possible to have sublinear regret. For simplicity, however, we will use $\regret = \regret_0$ in this lecture. 
+
+\subsection{Failure of Deterministic Strategy}
+The following lemma states that in non-stochastic setting, a deterministic algorithm cannot achieve meaningful regret. 
+\begin{lemma}
+If $\la$ is deterministic, i.e., $A_t = a_t$ is a fixed function of $\history_t := (a_1, r_{a_1, 1}, \cdots, a_{t-1}, r_{a_{t-1}, t-1})$, then there exists a matrix $(r_{a, t})_{a\in\actions, t \in [T]}$ such that $\regret(\la, (r_{a, t})_{a\in\actions, t \in [T]}) \geq T/2$. 
+\end{lemma}
+
+\begin{proof}
+Consider binary case when $K=2$. 
+
+If $a_1=1$, set $r_{1, 1}=0, r_{2, 1}=1$ or set $r_{1, 1}=1, r_{2, 1}=0$ otherwise. 
+
+This will determine $a_2$ and again set the reward for $a_2$ equal to 0 and the other reward to be 1. 
+
+Repeat this until we complete the entire matrix. Then by construction, 
+$$
+\sum_t r_{a_t, t} = 0
+$$
+
+Meanwhile, since each column has exactly one entry of value 1, the sum of all elements equals to $T$. Then by pigeon-hole principle, 
+$$
+\max(\sum_t r_{1, t}, \sum_t r_{2, t})\geq T/2
+$$
+
+This completes the proof for the binary case. For the general case, construct the matrix in a similar fashion so that our action gets 0 reward while the others have 1. In this way, we can prove the regret is great than $\frac{K-1}{K}T$.
+\end{proof}
+
+\subsection{Randomized Algorithm}
+In this section, we will introduce a randomized algorithm called EXP3 (\textbf{exp}onential weights for \textbf{exp}loration and \textbf{exp}loitation). From now on, we will assume that we suffer losses $l_{a, t}$, instead of getting rewards. i.e., $l_{a, t} = 1 - r_{a, t}$, and $\regret(\la, (l_{a, t})_{a\in\actions, t \in [T]}) = \sum_t l_{A_t, t} - \min_{a \in \actions} \sum_t l_{a, t}$. 
+
+\begin{algorithm}
+	\begin{algorithmic}[1]
+		\STATE Tuning parameter $\eta >0$
+		\STATE Choose $p_1$ to be uniform over $\actions$
+		\FOR{t=1,2, $\cdots$,T}
+		\STATE Draw $A_t$ according to $p_t$
+		\STATE Estimated loss $\tilde l_{a, t} := \frac{l_{a, t}}{p_{a, t}} \ind(a=A_t)$
+		\STATE Update cumulative estimated losses: $\tilde L_{a, t} := \tilde L_{a, t-1} + \tilde l_{a, t}$
+		\STATE Update $p_{a, t+1} \propto \exp(-\eta \tilde L_{a, t})$
+		\STATE Or, equivalently, $p_{a, t+1} = \exp(-\eta \tilde L_{a, t}) /\sum_{a^*\in\actions}\exp(-\eta \tilde L_{a^*, t})$
+		\ENDFOR 
+		\end{algorithmic}
+		\caption{EXP3}
+\end{algorithm}
+
+The algorithm updates the distribution among actions after suffering losses, and decides the next action randomly from this distribution. 
+
+\subsection{Sublinear Regret of EXP3}
+The following theorem proves the sublinear regret of EXP3 algorithm. 
+
+\begin{theorem}
+    EXP3 has an expected regret of $\sqrt{2TK\log K}$ when $\eta = \sqrt{\frac{2\log K}{TK}}$.
+\end{theorem}
+
+\begin{proof}
+This proof consists of four steps, and this lecture will introduce the first step and the key idea. The rest of the proof will be completed in the next lecture. 
+
+\textbf{STEP1}
+There are four useful observations:
+\begin{enumerate}
+    \item
+    \begin{flalign*}
+        \E{\tilde l_{a,t}|\history_t} &= \E{\frac{l_{a,t}}{p_{a,t}}\ind(a=A_t)|\history_t} \\
+        &=\sum_{a'\in\actions}\frac{l_{a,t}}{p_{a,t}}\ind(a=a')p_{a',t} \\
+        &=\frac{l_{a,t}}{p_{a,t}}p_{a,t}\\
+        &=l_{a,t}&&
+    \end{flalign*}
+    \item Let $p_t := (p_{1, t}, \cdots, p_{K, t})^T, l_t := (l_{1, t}, \cdots, l_{K, t})^T, \tilde l_t := (\tilde l_{1, t}, \cdots, \tilde l_{K, t})^T$.
+    
+    Then we have: $p_t^T \tilde l_t = \sum_a p_{a, t} \tilde l_{a, t} = l_{A_t, t}$
+    \item Consider any function is applied component-wisely. 
+    
+    $p_t^T \tilde l_t^2 = \sum_a p_{a, t} \tilde l_{a, t}^2 = l_{A_t, t}^2 / p_{A_t, t}$
+    \item $\E{\frac{1}{p_{A_t, t}}|\history_t}=\sum_a \frac{1}{p_{a,t}}p_{a,t} = K$
+\end{enumerate}
+
+Now consider a regret against some fixed action $b\in\actions$ (later we will take maximum over $b$ to get the real regret). 
+$$
+\sum_t l_{A_t, t} - \sum_t l_{b, t} = \sum_t p_t^T \tilde l_t - \sum_t \E{\tilde l_{b, t}|\history_t} ~~~ (\because \text{observation 1 and 2})
+$$
+
+\textbf{KEY IDEA}
+
+Every function is calculated component-wisely.
+$$
+p_t^T \tilde l_t = \frac{1}{\eta}[\log p_t^T \exp(-\eta \tilde l_t) + \eta p_t^T \tilde l_t] - \frac{1}{\eta} \log p_t^T \exp(-\eta \tilde l_t)
+$$
+\end{proof}
+		
+\bibliography{stats710}
+\end{document} 
