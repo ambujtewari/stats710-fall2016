@@ -1,0 +1,134 @@
+\documentclass[11pt]{article}
+\usepackage{url,amsmath,setspace,amssymb,amsthm,fullpage,algorithmic}
+
+% Scribe template modified from original created by UC Berkeley's EECS department
+
+\newcommand{\heading}[5]{
+   \renewcommand{\thepage}{#1-\arabic{page}}
+   \noindent
+   \begin{center}
+   \framebox[\textwidth]{
+     \begin{minipage}{0.9\textwidth} \onehalfspacing
+       {\bf STATS 710 -- Seq. Dec. Making with mHealth Applications} \hfill #2
+
+       {\centering \Large #5
+
+       }\medskip
+
+       {\it #3 \hfill #4}
+     \end{minipage}
+   }
+   \end{center}
+}
+
+\newcommand{\scribe}[4]{\heading{#1}{#2}{Instructors:
+Susan Murphy and Ambuj Tewari}{Scribe: #4}{Lecture #1: #3}}
+
+\input{macros}
+
+\bibliographystyle{alpha}
+
+\begin{document}
+\scribe{9}{Oct 06, 2016}{Proof of the Sublinear Regret of EXP3}{Julie Deeke}
+
+\section{Sublinear Regret of EXP3}
+
+\subsection{Setup}
+
+\begin{theorem}
+    EXP3 run with $\eta = \sqrt{\frac{2\log K}{TK}}$ enjoys $\max_b \E{\sum_{t=1}^T l_{A_t, t} - \sum_{t=1}^T l_{b, t}} \leq \sqrt{2TK \log K}$.
+\end{theorem}
+
+The algorithm for EXP3 and the beginning of this proof can be found in sections 1.3 and 1.4 of Lecture 8.  We will use the four useful facts and the key fact that was shown in section 1.4 in the proof below.
+
+\subsection{Continuation of Proof}
+
+From last lecture, the key idea was to write: 
+
+$$
+p_t^T \tilde l_t = \frac{1}{\eta}[\log p_t^T \exp(-\eta \tilde l_t) + \eta p_t^T \tilde l_t] - \frac{1}{\eta} \log p_t^T \exp(-\eta \tilde l_t)
+$$
+
+where every function is calculated component-wise.
+
+The first part of the expression can be bounded by:
+
+\begin{align*}
+\frac{1}{\eta}[\log p_t^T \exp(-\eta \tilde l_t) + \eta p_t^T \tilde l_t] &\leq \frac{1}{\eta} [p_t^T (\exp(
+-\eta \tilde l_t) -1 + \eta p_t^T \tilde l_t)] ~~~ (\because \log(x) \le x -1) \\
+&= \frac{p_t^T}{\eta} [\exp(-\eta \tilde l_t) - \overrightarrow{1} + \eta \tilde l_t] ~~~ (\because p_t^T \overrightarrow{1} = 1) \\
+&\leq \frac{p_t^T}{\eta} \frac{\eta^2 \tilde l_t^2}{2} ~~~ (\because e^{-x} - 1 + x \leq \frac{x^2}{2},\ \forall x \geq 0) \\
+&= \frac{\eta p_t^T \tilde l_t^2}{2} \\
+& = \frac{\eta}{2}\frac{l_{A_t, t}^2}{p_{A_t, t}} ~~~ (\because \text{observation 3}) \\
+&\leq \frac{\eta}{2 p_{A_t, t}} ~~~ (\because l_{A_t, t} \leq 1) \\
+\end{align*}
+
+The second part of this expression is equivalent to: 
+
+\begin{align*}
+-\frac{1}{\eta} [\log p_t^T \exp (-\eta \tilde l_t)] &= -\frac{1}{\eta} [\log \sum_{a \in \actions} p_{a, t} \exp (-\eta \tilde l_{a,t})] \\
+&= -\frac{1}{\eta} [\log \sum_{a \in \actions} \frac{\exp (-\eta \tilde L_{a, t-1})}{\sum_{a^* \in \actions} \exp (-\eta \tilde L_{a^*, t-1})} \exp(-\eta \tilde l_{a,t})] ~~~ (\because \text{definition of } p_{a, t+1}) \\
+&= -\frac{1}{\eta} [\log \frac{\sum_{a \in \actions} \exp(-\eta \tilde L_{a,t})}{\sum_{a^* \in \actions} \exp(-\eta \tilde L_{a^*, t-1})}] \\
+&= -\frac{1}{\eta} [\log \frac{\frac{1}{K}\sum_{a \in \actions} \exp(-\eta \tilde L_{a,t})}{\frac{1}{K}\sum_{a \in \actions} \exp(-\eta \tilde L_{a, t-1})}] \\
+&= \Phi_{t-1} - \Phi_{t} \\
+\end{align*}
+
+where $\Phi_t := \frac{1}{\eta} \log[\frac{1}{K} \sum_{a \in \actions} \exp(-\eta \tilde L_{a,t})], \tilde L_{a,0} := 0, \Phi_0 :=0$.  This will result in a telescoping sum.
+
+From the formulation for regret with respect to some fixed action $b \in \actions$ found in the last lecture and the work above:
+
+\begin{align*}
+\sum_{t=1}^T l_{A_t, t} - \sum_{t=1}^T l_{b,t} &= \sum_{t=1}^T p_t^T \tilde l_t - \sum_{t=1}^T \E {\tilde l_{b, t} \mid \history_t}  \\
+&\leq \sum_{t=1}^T \frac{\eta}{2 p_{A_t, t}} + \sum_{t=1}^T (\Phi_{t-1} - \Phi_{t}) - \sum_{t=1}^T \E {\tilde l_{b,t} \mid \history_{t}} \\
+&= \sum_{t=1}^T \frac{\eta}{2 p_{A_t, t}} + \Phi_0 - \Phi_T -\sum_{t=1}^T \E{\tilde l_{b,t}\mid\history_T}
+\end{align*}
+
+From above, $\Phi_0 := 0$ and 
+\begin{align*}
+-\Phi_T &= \frac{\log K}{\eta} -\frac{1}{\eta} \log[\sum_{a \in \actions} \exp( -\eta \tilde L_{a,T})] \\
+&\leq \frac{\log K}{\eta} -\frac{1}{\eta} \log[\exp(-\eta \tilde L_{b, T})] ~~~ (\because \text{sum is greater than the single term involving $b$}) \\
+&= \frac{\log K}{\eta} + \tilde L_{b,T}
+\end{align*}
+
+Thus, combining the above two formulas, the expected regret becomes:
+\begin{align*}
+\E {\sum_{t=1}^T l_{A_t, t} - \sum_{t=1}^T l_{b,t}} &\leq \sum_{t=1}^T \E{\frac{\eta}{2p_{A_t, t}}} + \frac{\log K}{\eta} +\E{\tilde L_{b,T}} -\E{\sum_{t=1}^T \E{\tilde l_{b,t} \mid \history_t}}\\
+& = \sum_{t=1}^T \frac{\eta}{2} K + \frac{\log K}{\eta} ~~~ (\because \text{the last two terms cancel and fact 4})\\
+&=\frac{\eta}{2} KT + \frac{\log K}{\eta}
+\end{align*}
+
+When we tune $\eta := \sqrt{\frac{2 \log K}{TK}}$, we get the theorem statement and the regret bound.
+
+The new advance of Auer et al. over the corresponding full information problem (aka ``experts problem" where the entire vector $l_t$ is revealed at tne end of each round) was the algorithm presented and the regret bound \cite{auer2002nonstochastic}.  The algorithm does require that we pay an additional price (of the order$\sqrt{K}$), which comes from Fact 4.  In the full information case, the regret bound is $O(\sqrt{T \log K})$.  In addition, this proof is brittle to departures of unbiasedness in the estimated losses.
+
+The lower bound for the expected regret is $c\sqrt{TK}$ where $c$ is some constant.  The lower bound was shown to be tight in 2009 via the INF algorithm~\cite{audibert2009minimax}.
+
+\section{Introduction to Contextual Bandits}
+
+A brief introduction to contextual bandits will be found here.  Multi-armed bandits do not use background information, but there is usually additional information in the real world.  In the context of health care, if we were to be taking actions with regards to a patient's health, we would normally have other information about the patient and would want to take into account that information when deciding what actions to perform.  Health care data in particular lends itself to a contextual bandit, with examples of context including number of steps, activity level, and number of activities on the calendar.
+
+The general flow of information for a multi-armed bandit is:
+
+\begin{algorithmic}[1]
+\FOR{$t=1$ to $T$}
+\STATE Learner selects action $A_t \in \actions$
+\STATE Learner receives reward $R_t = R^{A_t}_t$
+\ENDFOR
+\end{algorithmic}
+
+In the case of contextual bandits, in addition to the stream of rewards for a particular action, there is a stream of contexts.  These $X_1, X_2, \ldots$ are contexts that can be viewed as iid and stochastic.  The action selected will be influenced by the context.  If the actions were to impact the context, then we would be moving into the realm of reinforcement learning.
+
+The contextual bandit flow of information is modified from the multi-armed bandit to:
+
+\begin{algorithmic}[1]
+\FOR{$t=1$ to $T$}
+\STATE Learner sees $X_t \in \mathcal{X}$
+\STATE Learner selects action $A_t \in \actions$ with consideration to $X_t$
+\STATE Learner receives reward $R_t = R^{A_t}_t$
+\ENDFOR
+\end{algorithmic}
+
+\bibliography{stats710}
+\end{document}
+
+
