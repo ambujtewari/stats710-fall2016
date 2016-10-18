@@ -1,0 +1,183 @@
+\documentclass[11pt]{article}
+\usepackage{url,amsmath,setspace,amssymb,amsthm,fullpage,algorithm,algorithmic}
+
+% Scribe template modified from original created by UC Berkeley's EECS department
+
+\newcommand{\heading}[5]{
+   \renewcommand{\thepage}{#1-\arabic{page}}
+   \noindent
+   \begin{center}
+   \framebox[\textwidth]{
+     \begin{minipage}{0.9\textwidth} \onehalfspacing
+       {\bf STATS 710 -- Seq. Dec. Making with mHealth Applications} \hfill #2
+
+       {\centering \Large #5
+
+       }\medskip
+
+       {\it #3 \hfill #4}
+     \end{minipage}
+   }
+   \end{center}
+}
+
+\newcommand{\scribe}[4]{\heading{#1}{#2}{Instructors:
+Susan Murphy and Ambuj Tewari}{Scribe: #4}{Lecture #1: #3}}
+
+\input{macros}
+
+\bibliographystyle{alpha}
+
+\begin{document}
+\scribe{11}{Oct 13, 2016}{Epoch Greedy Algorithm }{Peng Liao}
+
+\section{Recap from Lecture 10}
+
+Recall from last lecture that the general flow of information for contextual bandits is 
+\begin{algorithmic}[1]
+	\FOR{$t=1$ to $T$}
+	\STATE Learner sees $X_t \in \mathcal{X}$
+	\STATE Learner selects action $A_t \in \actions$
+	\STATE Learner receives reward $R_t = R^{A_t}_t$
+	\ENDFOR
+\end{algorithmic}
+In the stochastic setting, we assume that the context-reward pair $(X_t, R_t) = \{X_t, R_t^a, a \in \actions \}$ are i.i.d. across time with distribution $D$ and the expected regret against a policy class $\Pi$ is defined as
+\begin{equation*}
+\regret_T(\la, D, \Pi) 
+= \sup_{\pi \in \Pi} 
+\E{ \sum_{t=1}^{T} R_{t}^{\pi(X_t)} - \sum_{t=1}^{T} R_t^{A_t}  }
+= T V(\pi^*)  - \E{ \sum_{t=1}^{T} R_t^{A_t}  }
+\end{equation*}
+where $V(\pi) := \mathbb{E}_{(X, R) \sim D} \big[ R_t^{\pi(X)} \big]$ is the value function and $\pi^* = \argmax_{\pi \in \Pi} V(\pi)$ is the optimal policy.  We showed that when the context space $\mathcal{X}$ is finite, by using the idea of reduction to multiple MAB the regret bound scales as $\sqrt{K \log K} \sqrt{T |\mathcal{X}|}$ for EXP3. The dependence on $\sqrt{|\mathcal{X}|}$ cannot be avoided.  Note that this result is only valid when the context space is finite and we are not making any assumptions on how different contexts relate to the expected reward.     
+In general, we have two options to bypass this finiteness assumption:\\
+\vspace{-1ex}\\
+\textit{\textbf{Option 1.}} Do not model $\mathbb{E}[R^{a}|X]$, but try to compete with a class of policies. \\
+\vspace{-1ex} \\
+\textit{\textbf{Option 2.}} Model $\mathbb{E}[R^{a}|X]$ and compete with the best policy overall. \\
+
+
+
+
+\section{Epoch Greedy Algorithm \cite{langford2008epoch}}
+
+
+
+We will start with a simple algorithm in which we assume that the total number of rounds is known upfront and prove the regret bound of order $(\text{VC-dim}(\Pi))^{1/3} T^{2/3}$.   Then we will introduce the Epoch Greedy algorithm that generalizes this simple algorithm: it does not require the knowledge of $T$, but could still achieve the same rate if increasing the size of epoch appropriately.   We will use the VC dimension in the proof to upper bound the expected sup norm of empirical process over the policy class.  This is a standard result in statistics \cite{van1996weak} and machine learning (see the lecture notes in the email).  In the following, for simplicity we always assume action are binary, i.e. $\actions = \{0, 1\}$,  and the policies are deterministic. 
+
+\subsection{A Simple Algorithm with known $T$.}
+
+\begin{algorithm}[H]
+	\begin{algorithmic}[1]
+		\STATE \textbf{Input:} The total rounds $T$. Rounds of exploration $T_0$. Policy Class $\Pi$.  
+		\FOR{$t=1$ to $T_0$}
+		\STATE Learner sees $X_t \in \mathcal{X}$
+		\STATE Learner selects action $A_t$ uniformly over $\actions$ (e.g. $A_t \sim \text{Bernoulli(0.5)}$)
+		\STATE Learner receives reward $R_t = R^{A_t}_t$
+		\ENDFOR
+		\STATE Compute $\hat \pi = \arg \max_{\pi \in \Pi} \frac{1}{T_0} \sum_{t=1}^{T_0} 2 R_t^{A_t} \mathbf{1}_{\{\pi(X_t) = A_t\}}$
+		\FOR{$t=T_0+1$ to $T$}
+		\STATE Learner sees $X_t \in \mathcal{X}$
+		\STATE Learner selects action $A_t = \hat \pi(X_t)$
+		\STATE Learner receives reward $R_t = R^{A_t}_t$
+		\ENDFOR
+	\end{algorithmic}
+	\label{Sim Alg}
+	\caption{Simplified Version of Epoch Greedy Algorithm}
+\end{algorithm}
+\begin{theorem}
+	\label{thm1}
+	Suppose $R_t^a \in [0, 1]$ and $\text{VC-dim}(\Pi) < \infty$. Then the expected regret of Algorithm 1 at round $T$ with $T_0 < T$ exploration rounds is bounded by
+	\[
+	\regret_T \leq T_0 + C T \sqrt{\frac{\text{VC-dim}(\Pi)}{T_0}}
+	\]
+	where $C$ is some universal constant. If $T_0$ is chosen optimally, i.e. $T_0 = (CT) ^{2/3}(\text{VC-dim}(\Pi))^{1/3}$, then $\regret_T =  O((\text{VC-dim}(\Pi))^{1/3} T^{2/3} )$.
+\end{theorem}
+
+\vspace{2ex}
+\begin{proof}[Proof of Theorem \ref{thm1}]
+	Since rewards are bounded within $[0, 1]$, the regret incurred in first $T_0$ rounds are at most $T_0$. For the $T - T_0$ exploitation rounds, the expected regret can be expressed as
+	\begin{align*}
+	 (T-T_0) V(\pi^*)  -  \mathbb{E} \Big[\sum_{t=T_0+1}^{T} R_t^{A_t}\Big] 
+	 &= (T-T_0) V(\pi^*)  - \mathbb{E} \Big[ \sum_{t=T_0+1}^{T} R_t^{\hat \pi(X_t)} \Big]\\
+	 &= (T-T_0) V(\pi^*)  - \mathbb{E} \Big[ \mathbb{E} \Big[ \sum_{t=T_0+1}^{T} R_t^{\hat \pi(X_t)} \Big] \big | H_{T_0 } \Big] \\
+%	 & = (T-T_0) V(\pi^*)  -  \E{ (T-T_0) V(\hat \pi)} \\
+	 & = (T-T_0) \E{ V(\pi^*) - V(\hat \pi)}
+	\end{align*}
+	where $H_{T_0} := \{X_i, A_i, R_i\}_{i=1}^{T_0}$ is the history up to time $T_0$.  Denote by $\hat V(\pi) = \frac{1}{T_0} \sum_{t=1}^{T_0} 2 R_t^{A_t} \mathbf{1}_{\{\pi(X_t) = A_t\}}$ the estimated value of policy $\pi$ after $T_0$ exploration rounds.  It is straightforward to see that $\hat V(\pi)$ is unbiased: $\mathbb{E}[\hat V(\pi)] = V(\pi)$. Using the definition of $\hat \pi$, i.e. $\hat V(\hat \pi) = \argmax_{\pi \in \Pi} \hat V(\pi)$, we have
+	\begin{align}
+	\E{ V(\pi^*) - V(\hat \pi)} & = \E{ V(\pi^*) - \hat V(\pi^*) + \hat V(\pi^*) - \hat V(\hat \pi) + \hat V(\hat \pi) - V(\hat \pi)} \label{e1}\\
+	& \leq \E{ V(\pi^*) - \hat V(\pi^*)  + \hat V(\hat \pi) - V(\hat \pi)}\\
+	& \leq 2 \E{\sup_{\pi \in \Pi}  \big| V(\pi) - \hat V(\pi) \big|} 
+	 \leq C \sqrt{\frac{\text{VC-dim}(\Pi)}{T_0}} \label{e2}
+	\end{align}
+	Thus the total regret $	\regret_T \leq T_0 + C (T-T_0) \sqrt{\frac{\text{VC-dim}(\Pi)}{T_0}} \leq T_0 + CT \sqrt{\frac{\text{VC-dim}(\Pi)}{T_0}}$. 
+
+	
+\end{proof}
+
+
+\subsection{Epoch Greedy Algorithm}
+
+\begin{algorithm}
+	\begin{algorithmic}[1]
+		\STATE \textbf{Input:} Policy Class $\Pi$. $l_j$ = the number of exploitation rounds in the $j$-th epoch, $j = 1, 2 \dots.$
+		\STATE Initialize $D_0 = \emptyset$ and $t_1 = 1$
+		\FOR{epoch $j = 1, 2, \dots$}
+		\STATE $t = t_j$
+		\STATE Learner sees $X_t \in \mathcal{X}$
+		\STATE Learner selects action $A_t$ uniformly in $\actions$
+		\STATE Learner receives reward $R_t = R^{A_t}_t$
+		\STATE $D_j = D_{j-1} \cup \{ X_t, A_t, R_t  \}$
+		
+		\STATE  Compute $\hat \pi_j = \arg \max_{\pi \in \Pi} \frac{1}{|D_j|} \sum_{(x, a, r) \in D_j} 2 r \mathbf{1}_{\{\pi(x) = a\}}$
+		\STATE $t_{j+1} = t_j + l_j + 1$
+		\FOR{$t=t_j + 1$ to $t_{j+1}-1$}
+		\STATE Learner sees $X_t \in \mathcal{X}$
+		\STATE Learner selects action $A_t = \hat \pi_j(X_t)$
+		\STATE Learner receives reward $R_t = R^{A_t}_t$
+		\ENDFOR
+		\ENDFOR
+		
+	\end{algorithmic} 
+	\caption{Epoch Greedy Algorithm}
+	\label{EpochGreedyAlg}
+\end{algorithm}
+
+\begin{theorem}
+	\label{thm2}
+	Suppose $R_t^a \in [0, 1]$ and $\text{VC-dim}(\Pi) < \infty$. The expected regret of Algorithm \ref{EpochGreedyAlg} after $J$-th epoch (i.e. $T = \sum_{j=1}^{J} (1+l_j)$) is bounded by
+	$$\regret_T \leq  \sum_{j=1}^{J} \left(1  +   C l_j \sqrt{\frac{\text{VC-dim}(\Pi)}{j}}\right).$$ 
+	If choosing the epoch size $l_j =\sqrt{j/\text{VC-dim}(\Pi)}$, then $\regret_T$ scales as $O((\text{VC-dim}(\Pi))^{1/3}T^{2/3})$. 
+	
+\end{theorem}
+\vspace{2ex}
+\begin{proof}[Proof of Theorem \ref{thm2}]
+	We first rewrite the expected regret in epoch level:
+	\begin{align*}
+	\regret_T   = \mathbb{E}\Big[ \sum_{t=1}^{T} R_{t}^{\pi^*(X_t)} - \sum_{t=1}^{T} R_t^{A_t}  \Big]
+	& =\mathbb{E}\Big[ \sum_{j=1}^{J} \sum_{t=t_j}^{t_{j+1}-1}(R_{t}^{\pi^*(X_t)} - R_t^{A_t})  \Big]\\
+	& =  \sum_{j=1}^{J} \mathbb{E}\Big[ (R_{t_j}^{\pi^*(X_{t_j})} - R_{t_j}^{A_{t_j}}) +  \sum_{t=t_j+1}^{t_{j+1}-1}(R_{t}^{\pi^*(X_t)} - R_t^{A_t})\Big]\\
+	& \leq  \sum_{j=1}^{J} 1  + \mathbb{E}\Big[\sum_{t=t_j+1}^{t_{j+1}-1}(R_{t}^{\pi^*(X_t)} - R_t^{\hat \pi_j(X_t)})\Big]
+	\end{align*}
+	Recall that we defined $t_{j+1} = t_{j}+ l_j + 1$. Using the same trick as before, the involved expectation above can be written as
+	\begin{align*}
+		\mathbb{E}\Big[\sum_{t=t_j+1}^{t_{j+1}-1}(R_{t}^{\pi^*(X_t)} - R_t^{\hat \pi_j(X_t)})\Big] & =   \mathbb{E} \Big[  \mathbb{E} \Big[ \sum_{t=t_j+1}^{t_{j+1}-1}(R_{t}^{\pi^*(X_t)} - R_t^{\hat \pi_j(X_t)}) \Big| H_{t_j+1} \Big]  \Big]\\
+		& =  \E{  (t_{j+1} - t_j -1) (V(\pi^*) - V(\hat \pi_j))}\\
+		& =  l_j \E{   (V(\pi^*) - V(\hat \pi_j))}
+	\end{align*}
+	Note that the estimator $\hat \pi_j$ is built from $D_j$, which is of size $j$ (one exploration per epoch).  Using the same trick as in proving Theorem \ref{thm1} (i.e. from inequality (\ref{e1}) to (\ref{e2})), we have
+	\begin{align*}
+	\E{   (V(\pi^*) - V(\hat \pi_j))} \leq  C \sqrt{\frac{\text{VC-dim}(\Pi)}{j}}
+	\end{align*}
+	Thus we have $\regret_T \leq  \sum_{j=1}^{J} \left(1  +   C l_j \sqrt{\frac{\text{VC-dim}(\Pi)}{j}}\right)$, as desired. Now setting $l_j =\sqrt{j/\text{VC-dim}(\Pi)}$,  we have $\regret_T \leq (1+C) J = O(J)$ and 
+	\begin{align*}
+	T = \sum_{j=1}^{J} (l_j +1) = J + \sum_{j=1}^{J} l_j = J + \frac{\sum_{j=1}^J \sqrt{j}}{ \sqrt{\text{VC-dim}(\Pi)}} =  J + \frac{O(J^{3/2})}{ \sqrt{\text{VC-dim}(\Pi)}}
+	\end{align*}
+	This implies $T \geq K  \frac{J^{3/2}}{\sqrt{\text{VC-dim}(\Pi)}} $ for some universal constant $K$ and thus $J = O((\text{VC-dim}(\Pi))^{1/3}T^{2/3})$.  
+\end{proof}
+
+
+\bibliography{stats710}
+\end{document}
+
+
