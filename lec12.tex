@@ -1,0 +1,143 @@
+\documentclass[11pt]{article}
+\usepackage{url,amsmath,setspace,amssymb,amsthm,fullpage}
+\usepackage{algorithm,algorithmic}
+
+% Scribe template modified from original created by UC Berkeley's EECS department
+
+\newcommand{\heading}[5]{
+   \renewcommand{\thepage}{#1-\arabic{page}}
+   \noindent
+   \begin{center}
+   \framebox[\textwidth]{
+     \begin{minipage}{0.9\textwidth} \onehalfspacing
+       {\bf STATS 710 -- Seq. Dec. Making with mHealth Applications} \hfill #2
+
+       {\centering \Large #5
+
+       }\medskip
+
+       {\it #3 \hfill #4}
+     \end{minipage}
+   }
+   \end{center}
+}
+
+\newcommand{\scribe}[4]{\heading{#1}{#2}{Instructors:
+Susan Murphy and Ambuj Tewari}{Scribe: #4}{Lecture #1: #3}}
+
+
+\input{macros}
+
+\bibliographystyle{alpha}
+
+\begin{document}
+\scribe{12}{Oct 18, 2016}{EXP$4$ Algorithm}{Huajie Qian}
+\section{Recap}
+Recall from Lecture $10$ and $11$ the following regret bounds for contextual bandits problem when competing against a class of deterministic policies $\Pi\subseteq \mathcal X^{\actions}$, where $\mathcal X$ is the set of possible contexts and $\actions$ is the set of actions. Let $K=\vert\actions \vert$ be the total number of actions, and $T$ the number of rounds of play.
+
+If the context set $\mathcal X$ is finite, i.e. $N=\vert \mathcal X\vert <\infty$, and $\Pi=\mathcal X^{\actions}$, then one can achieve a regret bound $\sqrt{NKT\log K}$ by running EXP$3$ for each context $x\in \mathcal X$ separately (the $\log K$ factor can be removed by running a finer algorithm than EXP$3$). Rewrite the regret bound as $\sqrt{KT\log K^N}$, and note that $K^N=\vert \mathcal X^{\actions}\vert$ is the number of policies that we are competing against. So it is tempting to guess that, which shall be proved below, when competing with an arbitrary class $\Pi\subset  \mathcal X^{\actions}$ there is some learning algorithm which gives a regret bound of $\sqrt{KT\log \vert \Pi\vert}$.
+
+Otherwise, if $ \mathcal X$ is a general set and the class of policies $\Pi$ has finite VC dimension VC-dim$(\Pi)$, then Epoch greedy algorithm (when $K=2$) gives the regret bound $O(($VC-dim$(\Pi))^{1/3}T^{2/3})$.
+
+\section{Exponential-weight algorithm for Exploration and Exploitation using Expert advice (EXP4)}
+
+Now we revisit the non-stochastic bandits problem. We have shown that EXP$3$ gives the upper bound $\sqrt{2TK\log K}$ for expected regret against the best action, for any assignment of loss $l_{a,t}\in [0,1]$. From another point of view, each action $a\in \actions$ can be treated as an expert which always suggests taking action $a$ in each round, and the regret is defined against the best one of $K$ such experts. In this lecture, we move to a more general setting where there are an arbitrary and fixed number of experts (strategies, algorithms, policies) available who give advice on which action to choose. Here the way the experts generate their advice can be quite general. For example, it can be generated from MAB learning algorithms, policies in contextual bandits, and strategies such as sticking to a particular action in each round (the EXP$3$ case). The goal is to exploit their advice in such a way that the overall performance is close to that of the best expert. This is achieved by the EXP$4$ algorithm, which generalizes EXP$3$. The original paper on EXP$4$ is \cite{auer2002nonstochastic}.
+
+\subsection{Setup and the goal}
+Given a fixed but unknown set of loss $l_{a,t},a\in \actions$, the learner does the following
+\begin{algorithmic}[1]
+\FOR{t=1 \TO T}
+\STATE Receive "advice" from $N$ "experts": $\xi_t^1,\ldots,\xi_t^N$, $N$ probability measures over $\actions$
+\STATE Combine $\xi_t^i$, $i=1,\ldots,N$ into a single probability measure $p_t$ over $\actions$
+\STATE Select an action $A_t\sim p_t$
+\STATE Suffer loss $l_{A_t,t}$
+\ENDFOR
+\end{algorithmic}
+The aim is to design a strategy of combining the advice so as to minimize the expected regret
+\begin{equation}\label{regret}
+\max_{k=1,\ldots,N}\E{\sum_{t=1}^Tl_{A_t,t}-Y_{k,T}}
+\end{equation}
+against the (unknown) best expert, where $Y_{k,T}=\sum_{t=1}^Ty_{k,t}$ with each $y_{k,t}=(\xi_t^k)^Tl_t=\sum_{a\in \actions}\xi_{a,t}^kl_{a,t}$ is the cumulative loss of the $k$-th expert. Notice that when $N=\vert \actions\vert $ and $\xi_t^a$ is a point mass at $a\in\actions$ for all $t$, then the regret \eqref{regret} coincides with the one used for EXP$3$. As a side note, in contrast to Boosting which produces strong learners out of weak ones, the goal here is less ambitious, i.e.~to do no much worse than the best choice.
+\subsection{EXP4 algorithm}
+\begin{algorithm}
+\caption{EXP$4$ with $N$ experts}\label{exp4}
+\begin{algorithmic}[1]
+\STATE Tuning parameter: $\eta>0$
+\STATE Let the initial weights $q_{k,1}=\frac{1}{N}$ and initial cumulative loss $\tilde{Y}_{k,0}=0$ for $1\leq k\leq N$
+\FOR{t=1 \TO T}
+\STATE Get $\xi_t^1,\ldots,\xi_t^N$
+\STATE Let $p_t=\sum_{k=1}^Nq_{k,t}\xi_t^k$
+\STATE Draw $A_t\sim p_t$
+\STATE Observe $l_{A_t,t}$
+\STATE Estimate the loss values $\tilde{l}_{a,t}=\frac{l_{a,t}}{p_{a,t}}\ind{(A_t=a)}$ for $a\in \actions$
+\STATE Estimate the loss each expert suffers $\tilde{y}_{k,t}=\sum_{a\in \actions}\xi_{a,t}^k\tilde{l}_{a,t}$ for $1\leq k\leq N$
+\STATE Update the cumulative estimated loss of each expert $\tilde{Y}_{k,t}=\tilde{Y}_{k,t-1}+\tilde{y}_{k,s}$ for $1\leq k\leq N$
+\STATE Update $q_{k,t+1}= \exp(-\eta\tilde{Y}_{k,t})/\sum_{k^*=1}^N\exp(-\eta\tilde{Y}_{k^*,t})$
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+Note that when $N=K$ and $\xi_t^a$ is a point mass at $a\in\actions$ for all $t$, the algorithm essentially reduces to EXP$3$. We have the following theoretical guarantee for EXP$4$.
+\begin{theorem}
+The expected regret \eqref{regret} of EXP$4$ on any sequence of $[0,1]$-bounded loss is at most $\sqrt{2TK\log N}$ when $\eta$ is set to be $\eta=\sqrt{\frac{2\log N}{KT}}$.
+\end{theorem}
+\textit{Proof: }The proof resembles the one for EXP$3$. Let $q_t=(q_{1,t},\ldots,q_{N,t})^T,\tilde{y}_t=(\tilde{y}_{1,t},\ldots,\tilde{y}_{N,t})$. Let's first display some useful observations.
+\begin{description}
+\item[1] $q_t^T\tilde{y}_t=l_{A_t,t}$. This can be shown by manipulating the sum
+\begin{equation*}
+q_t^T\tilde{y}_t=\sum_{k=1}^Nq_{k,t}\tilde{y}_{k,t}=\sum_{k=1}^Nq_{k,t}\sum_{a\in \actions}\xi_{a,t}^k\tilde{l}_{a,t}=\sum_{a\in \actions}\tilde{l}_{a,t}\sum_{k=1}^Nq_{k,t}\xi_{a,t}^k=\sum_{a\in \actions}\tilde{l}_{a,t}p_{a,t}=l_{A_t,t}
+\end{equation*}
+\item[2] $\E{\tilde{l}_{a,t}\vert \history_t}=l_{a,t}$.
+\item[3] $\E{\frac{1}{p_{A_t,t}}\vert \history_t}=\sum_{a\in \actions}\frac{1}{p_{a,t}}p_{a,t}=K$.
+\end{description}
+Now we proceed to the main proof. Similar to the key inequality of the EXP$3$ proof from Lecture $9$, the following counterpart for EXP$4$ can be derived using a parallel argument (think of experts as actions in EXP$3$)
+\begin{equation}\label{keyinq}
+q_t^T\tilde{y}_t\leq \frac{\eta}{2}q_t^T\tilde{y}_t^2+\Phi_{t-1}-\Phi_t,
+\end{equation}
+where the squaring operation is component-wise, the term $\frac{\eta}{2}q_t^T\tilde{y}_t^2$ comes from controlling the cumulant generating function, and the potential function
+\begin{equation*}
+\Phi_t=\frac{1}{\eta}\log [\frac{1}{N}\sum_{k=1}^N\exp(-\eta\tilde{Y}_{k,t})].
+\end{equation*}
+Note that $\Phi_0=0$. Summing up \eqref{keyinq} over $t=1,\ldots,T$ and using observation $1$ gives
+\begin{equation}\label{ineq1}
+\sum_{t=1}^Tl_{A_t,t}\leq \frac{\eta}{2}\sum_{t=1}^Tq_t^T\tilde{y}_t^2+\Phi_0-\Phi_T=\frac{\eta}{2}\sum_{t=1}^Tq_t^T\tilde{y}_t^2-\Phi_T.
+\end{equation}
+Now it is clear that, in order to bound the cumulative loss of EXP$4$, we need to bound the negated potential
+\begin{eqnarray*}
+-\Phi_T&\leq&-\frac{1}{\eta}\log [\frac{1}{N}\sum_{k=1}^N\exp(-\eta\tilde{Y}_{k,T})]\\
+&\leq&-\frac{1}{\eta}\log [\frac{1}{N}\exp(-\eta\tilde{Y}_{k,T})]\text{ for any }1\leq k\leq N\\
+&\leq&\frac{\log N}{\eta}+\tilde{Y}_{k,T}\text{ for any }1\leq k\leq N
+\end{eqnarray*}
+as well as
+\begin{eqnarray}
+\nonumber q_t^T\tilde{y}_{t}^2&=&\sum_{k=1}^Nq_{k,t}\tilde{y}_{k,t}^2\\
+\nonumber&=&\sum_{k=1}^Nq_{k,t}(\sum_{a\in \actions}\xi_{a,t}^k\tilde{l}_{a,t})^2\\
+&\leq&\sum_{k=1}^Nq_{k,t}\sum_{a\in \actions}\xi_{a,t}^k\tilde{l}_{a,t}^2\label{meansq} \\
+&\leq&\sum_{a\in \actions}\sum_{k=1}^Nq_{k,t}\xi_{a,t}^k\tilde{l}_{a,t}^2\label{sqmean} \\
+\nonumber&=&\sum_{a\in \actions}\tilde{l}_{a,t}^2\sum_{k=1}^Nq_{k,t}\xi_{a,t}^k=\sum_{a\in \actions}\tilde{l}_{a,t}^2p_{a,t}=\frac{l_{A_t,t}^2}{p_{A_t,t}}\\
+\nonumber&\leq&\frac{1}{p_{A_t,t}},
+\end{eqnarray}
+where in passing from \eqref{meansq} to \eqref{sqmean} we apply Cauchy Schwartz inequality to the discrete random variable that takes value $\tilde{l}_{a,t}$ with probability $\xi_{a,t}^k$ and in the last line the boundedness of loss is used. Use the above two bounds to further bound \eqref{ineq1}
+\begin{equation*}
+\sum_{t=1}^Tl_{A_t,t}-\tilde{Y}_{k,T}\leq\frac{\eta}{2}\sum_{t=1}^T\frac{1}{p_{A_t,t}}+\frac{\log N}{\eta},
+\end{equation*}
+Note that, due to observation $2$ and $3$, it holds that $\E{\tilde{Y}_{k,T}}=\sum_{t=1}^T\sum_{a\in \actions}\xi_{a,t}^kl_{a,t}=Y_{k,T}$ for all $1\leq k\leq N$ and $\E{q_t^T\tilde{y}_t^2}\leq K$. So the expected regret satisfies
+\begin{equation*}
+\E{\sum_{t=1}^Tl_{A_t,t}-Y_{k,T}}=\E{\sum_{t=1}^Tl_{A_t,t}-\tilde{Y}_{k,T}}\leq \frac{\eta TK}{2}+\frac{\log N}{\eta},\text{ for all }1\leq k\leq N.
+\end{equation*}
+Therefore
+\begin{equation*}
+\max_{k=1,\ldots,N}\E{\sum_{t=1}^Tl_{A_t,t}-Y_{k,T}}\leq \frac{\eta TK}{2}+\frac{\log N}{\eta}.
+\end{equation*}
+Choosing $\eta=\sqrt{\frac{2\log N}{KT}}$ gives the desired conclusion.\qed
+
+
+
+
+
+
+
+
+
+
+\bibliography{stats710}
+\end{document}

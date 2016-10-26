@@ -1,0 +1,200 @@
+\documentclass[11pt]{article}
+\usepackage{url,amsmath,setspace,amssymb,amsthm,fullpage}
+\usepackage{algorithm,algorithmic}
+
+% Scribe template modified from original created by UC Berkeley's EECS department
+
+\newcommand{\heading}[5]{
+   \renewcommand{\thepage}{#1-\arabic{page}}
+   \noindent
+   \begin{center}
+   \framebox[\textwidth]{
+     \begin{minipage}{0.9\textwidth} \onehalfspacing
+       {\bf STATS 710 -- Seq. Decision Making with mHealth Applications} \hfill #2
+
+       {\centering \Large #5
+
+       }\medskip
+
+       {\it #3 \hfill #4}
+     \end{minipage}
+   }
+   \end{center}
+}
+
+\newcommand{\scribe}[4]{\heading{#1}{#2}{Instructors:
+Susan Murphy and Ambuj Tewari}{Scribe: #4}{Lecture #1: #3}}
+
+\input{macros}
+
+\bibliographystyle{alpha}
+
+\begin{document}
+\scribe{13}{Oct 20, 2016}{VE algorithm and regret analysis}{Lauren Steimle}
+\section{Recap from Previous Classes}
+\begin{description}
+\item[Exp3]  \hfill
+  \begin{itemize}
+  \item Non-stochastic setting. That is, the losses, $\ell_{i,t}$, are arbitrary numbers in $[0,1]$.
+  \item Regret is defined with respect to the best fixed action in hindsight
+  \item Regret bound was $\sqrt{2KT \log{K}}$ where $K$ is the number of actions.
+  \end{itemize}
+\item[Exp4] \hfill
+  \begin{itemize}
+  \item Non-stochastic with bounded losses.
+  \item New definition of regret. That is, regret is defined with respect to the best fixed ``expert'' in hindsight where an expert is a source of a probability distribution over $\actions$ at any given time.
+  \item Regret bound of $\sqrt{2KT\log{N}}$ where $N$ is the number of experts
+  \end{itemize}
+\item[Epoch Greedy]\hfill 
+\begin{itemize}
+\item Contextual bandit algorithm for stochastic problems. That is, there is some distribution on the contexts and rewards, $(\contexts,R^a)\sim \distfam$
+\item It can compete with any policy class, $\Pi$, with VC-dim($\Pi$) $< \infty$.
+\item It achieves expected regret of $O(T^{2/3}(\text{VC-dim}(\Pi))^{1/3})$. 
+\item It is computationally efficient: 
+$$
+\pi = \argmax_{\pi \in \Pi} \hat{v}(\pi)
+$$
+$$
+\hat{v}(\pi) = \frac{1}{|D|}\sum_{(x,a,r)\in D}2r\ind[\pi(x)=a]
+$$
+where $D$ is the current dataset. 
+\item Epoch greedy is a nice algorithm in the sense that it reduces the contextual bandit problem into a cost-sensitive classification problem.
+\end{itemize}
+\end{description}
+
+\section{VC-classes and Exp4 (VE) Algorithm \cite{beygelzimer2011contextual}}
+Today, we are going to improve the rate. We'll start from a VC-class and consider the case where $K=2$. A lot of this theory extends to general $K$ actions, but then we would need to consider multi-class classification and VC-dimension is no longer the right object to measure the complexity. \hfill
+\newline \\
+\textbf{Goal:} To design an algorithm called VE whose expected regret will scale as $O(Td\log(T/d))$ where $d = \text{VC-dim}(\Pi)$. \hfill
+\newline\\
+\textbf{Setting:} Stochastic contextual bandits with bounded losses, $(X_t,(\ell_{a,t})_{a\in\actions})\sim\distfam)$. 
+
+
+
+\subsection{Background on VC-dimensions}
+The growth function, $GF$, is a function of a class of classifiers (policies, $\Pi$) and a sample size $n$. It is a measure of how the complexity of the classifier grows with sample size.
+\begin{equation}
+GF(\Pi,n) = \max_{x_1,x_2,\ldots, x_n} | \{\pi(x_1),\pi(x_2),\ldots,\pi(x_n): \pi \in \Pi\}|
+\end{equation}
+It describes the maximum cardinality of the labels you can get on the $n$ contexts as $\pi$ ranges over the policy class, $\Pi$. If we are talking about binary classifiers, each element $\pi(x_i)$ takes on a $0$ or $1$. This implies that, for binary classifiers, we have a trivial bound of: 
+$$
+GF(\Pi,n) \le 2^n.
+$$
+VC-dimension describes the size of the dataset for which this we can actually get all $2^n$ labeling on this data set using the classifiers in $\Pi$.
+
+\begin{equation}
+\text{VC-dim}(\Pi) = \max \{n: GF(\Pi,n) = 2^n\}
+\end{equation}
+Intuitively, this means the larger the VC-dimension, the more complex the classifier. If VC-dim$(\Pi) = d < \infty$, then beyond $d$, the growth function behaves as a polynomial. 
+
+For any VC-class (i.e., a class of functions with finite VC-dimension) with VC-dimension = $d$:
+\begin{equation}\label{eq: growth function bound}
+GF(\Pi, n) \le \left(\frac{en}{d}\right)^d
+\end{equation}
+
+We will use this in the following way. In the VE algorithm, we draw $T_0$ samples uniformly at random. We know that the total number of labelings of $x_1,\ldots,x_{T_0}$ is finite. Further, we will define an equivalence class between classifiers in which two classifiers are equivalent if they agree on the observed samples. This is how we can reduce an infinite policy problem to a finite policy problem. 
+
+
+\subsection{The VE Algorithm}
+
+\begin{algorithm}
+\caption{VE}
+\label{alg: VE}
+\begin{algorithmic}
+\FOR{$t = 1$ \TO $T_0$}
+\STATE{ Receive context $x_t$ }
+\STATE {Select $A_t$ uniformly at random}
+\STATE {Receive loss $\ell_{\actions_t,t}$}
+\ENDFOR
+\STATE build a cover  $\Pi' \subseteq \Pi$ such that $\forall \pi \in \Pi$, there is exactly one $\pi' \in \Pi'$ such that $\pi(x_t) = \pi'(x_t)\;\;\forall 1 \le t \le T$
+\FOR{$t = T_0+1$ \TO{$T$}}
+\STATE Run Exp4 with set of ``experts'' = $\Pi'$ (and thus,  $N = |\Pi'| \le (\frac{eT_0}{d})^d$ )
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+The cover is built using $x_1,x_2,\ldots,x_{T_0}$. The bound on the number of experts, $N= |\Pi'| \le (\frac{eT_0}{d})^d$, follows from the Sauer-Shelah-V-C Lemma. 
+
+%
+%   Regret Analysis
+%
+\subsection{Regret Analysis for the VE Algorithm}
+\begin{equation}
+L(\pi) = \E{\ell_{\pi(x)}}
+\end{equation}
+where ${(x,\ell_a)\sim \distfam}$.
+
+\begin{equation}
+\text{Expected Regret }:= \E{\sum_{t=1}^T\ell_{\actions_t,t}} - T\cdot L(\pi^*)
+\end{equation}
+
+$$\pi^*=\argmin_{\pi\in\Pi} L(\pi)$$
+
+Let $\pi'$ be the member of $\Pi'$ such that $\pi^*(x_t) = \pi'(x_t)\;\;\;\forall 1\le t \le T_0$.
+
+To study the regret, we use the following reasoning (with explanations below):
+\begin{align}
+\E{\sum_{t=1}^T\ell_{A_t,t}} &\le T_0 +\E{\sum_{t=T_0+1}^T\ell_{A_t,t}}\label{eq: bound by T0}\\
+& \le T_0 + \E{\sum_{t=T_0+1}^T\ell_{\pi'(x_t),t}}+ \sqrt{2K(T-T_0) \log{N}} \label{eq: from EXP4 regret bound}\\
+& \le T_0 + \E{\sum_{t=T_0+1}^T\ell_{\pi'(x_t),t}}+  \sqrt{2KT\log{N}}\label{eq: T-T_0 is bounded by T}\\
+&\le T_0 + \E{\sum_{t=T_0+1}^T \ell_{\pi^*_{(x_t)},t}} + \E{\sum_{t=T_0+1}^T{\ind(\pi'(x_t)\neq \pi^*(x_t))}} + \sqrt{2KT\log{N}}
+\label{eq: all terms}
+\end{align}
+On the right-hand side of \eqref{eq: bound by T0}, the first term follows because we bound the losses from stages $1$ to $T_0$ by $T_0$. For the remainder, we focus on the second term which describes the second phase of the algorithm that runs according to Exp4. In the analysis of Exp4, we developed a regret bound that compares the algorithm's performance to any expert, and so we focus on the particular expert used in the algorithm, $\Pi'$, which is in our expert set. So \eqref{eq: from EXP4 regret bound} follows from Exp4's regret bound and the fact that $\pi' \in \Pi'$ (the set of experts we were comparing to). \eqref{eq: T-T_0 is bounded by T} follows because $T-T_0$ is upper bounded by $T$. 
+
+To get to \eqref{eq: pi' pi* disagree}, we would like to bound the loss between the performance of $\pi^*$ and $\pi'$. Even though we don't have $\pi^*$, we know that $\pi'$ is related to $\pi^*$. $\pi^*$ a fixed policy, but $\pi'$ is a random policy that depends on the data in the first $T_0$ stages. To bound the performance difference between these two policies, we want to think about how often they disagree in the second stage. (By construction, they will agree in the first stage). Note that:
+\begin{equation}
+\ell_{\pi'(x_t),t}\le \ell_{\pi^*(x_t),t} + \ind(\pi'(x_t)\neq \pi^*(x_t))\label{eq: pi' pi* disagree}
+\end{equation}
+Using the fact in \eqref{eq: pi' pi* disagree}, the right-hand side of \eqref{eq: all terms} follows from \eqref{eq: T-T_0 is bounded by T}. 
+
+So ``all'' we have to do is control the disagreement term:
+\begin{equation}
+\E{\sum_{t=T_0+1}^T\ind(\pi'(x_t)\neq \pi^*(x_t))} \label{eq: disagreement term}
+\end{equation}
+
+To bound this expectation, we bound the tail by analyzing the following probability:
+\begin{equation}\label{eq: tail probability 1}
+\prob{\sum_{t=T_0+1}^T\ind(\pi'(x_t)\neq \pi^*(x_t))>k}
+\end{equation}
+where $k$ is a free parameter representing the number of disagreements.  The number of disagreements can range from $0$ to $T-T_0$ so $k \in \{0,1,\ldots,T-T_0\}$. In this probability, we are asking the question ``Given two members of the same equivalence class (with the equivalence class being generated from the prefix of data), how much can they disagree on future data?" The probability in \eqref{eq: tail probability 1} is upper bounded by the probability that there exist two policies $\pi_1$ and $\pi_2$ that agree on the first $T_0$ data points but disagreement more than $k$ times on the remainder of the data:
+\begin{equation}\label{eq: tail probability 2}
+\eqref{eq: tail probability 1}\le \prob{\exists \pi_1,\pi_2 \in \Pi'', \pi(x_t) = \pi_2(x_t) \forall 1 \le t \le T_0, \sum_{t=T_0+1}^T\ind(\pi_1(x_t)\neq \pi_2(x_t)) > k}
+\end{equation}
+where $\Pi''$ is a cover of $\Pi$ using $(x_1,x_2,\ldots,x_T)$. (Note that $\Pi''$ only shows up in the proof of the regret bound and not in the actual algorithm itself.) The ``slick'' part of the proof is the following: $\Pi''$ only depends on the data itself and does not depend on the order of the data. We argue that the probability in \eqref{eq: tail probability 2} is invariant under permutations. 
+\begin{equation}\label{eq: tail probability 3}
+=\prob{\exists \pi_1,\pi_2 \in \Pi'', \pi_1(x_{\sigma(t)})= \pi_2(x_{\sigma(t)}) \forall 1 \le t \le T_0, \sum_{t=T_0+1} \ind(\pi_1(x_{\sigma(t)})\neq \pi_2(x_{\sigma(t)})) > k}
+\end{equation} 
+for every permutation $\sigma: \{1,\ldots,T\} \rightarrow \{1,\ldots,T\}$. Because all of the probabilities for the $T!$ permutations are equal, we can add up the $T!$ probabilities and divide by $T!$ to get the same probability as in \eqref{eq: tail probability 3}. Now, we think of $\sigma$ as a random permutation, and \eqref{eq: tail probability 3} as a probability on an augmented space where there are random variables $x_1,\ldots, x_T$ and a random variable $\sigma$. Now there are two sources of randomness: the randomness in the sample and the randomness in $\sigma$. We condition on the data (but $\sigma$ is still random):
+\begin{align}\label{eq: tail probability 4}
+\prob{\exists \pi_1,\pi_2 \in \Pi'', \pi_1(x_{\sigma(t)})= \pi_2(x_{\sigma(t)}) \forall 1 \le t \le T_0, \sum_{t=T_0+1}^T \ind(\pi_1(x_{\sigma(t)})\neq \pi_2(x_{\sigma(t)})) > k\;\Big|\;x_1,\ldots,x_T} \\
+\le |\Pi''|\max_{\pi,\pi_2} \prob{\pi_1(x_{\sigma(t)})= \pi_2(x_{\sigma(t)}) \forall 1 \le t \le T_0, \sum_{t=T_0+1}^T \ind(\pi_1(x_{\sigma(t)})\neq \pi_2(x_{\sigma(t)})) > k\;\Big|\;x_1,\ldots,x_T}\label{eq: tail prob union bound}
+\end{align} 
+where \eqref{eq: tail prob union bound} follows from the union bound. 
+
+Here, we think about what the probability in \eqref{eq: tail prob union bound} means. Imagine you have a collection of $T$ numbers (some 0's and some 1's) with at least $k$ 1's. The stream of 0's and 1's come in a random order. We bound the probability that you only see 0's in the first $T_0$ draws from this collection of $T$ numbers. The probability the first number is a zero is:
+\begin{equation}
+(1-\frac{\text{\# of 1's}}{T}) \le (1- \frac{k}{T})
+\end{equation}
+The probability the second number is a zero conditional on the first number being zero is:
+\begin{equation}
+(1-\frac{\text{\# of 1's}}{T-1}) \le (1-\frac{k}{T-1}) \le (1 - \frac{k}{T})
+\end{equation}
+We continue to determine the probability that the current draw is zero conditional on the previous draws all being zero, until we get to draw number $T_0$. The probability of the $T_0${th} draw is a zero conditional on the first $T_0-1$ draws being zero is less than $(1-\frac{k}{T})$. Multiplying these probabilities together we get:
+\begin{align}
+\text{Probability of seeing all 0's in first } T_0 \text{ draws} &\le (1-\frac{k}{T})^{T_0}\\
+&\le e^{-\frac{kT_0}{T}} \label{eq: 1-x le e^-x}
+\end{align}
+where \eqref{eq: 1-x le e^-x} follows by the fact that $1-x \le e^{-x}$.
+
+We could integrate over the tail probability to generate a tail bound, but this step is skipped here for brevity. Using this tail bound and fact that $|\Pi''|^2 \le (\frac{eT}{d})^d$ (by Sauer's Lemma), it is ``easy'' to show that:
+\begin{equation}\label{eq: bound number of disagreements}
+\E{\text{\# of disagreements}} \le \frac{4Td}{T_0}\log{\frac{eT}{d}}
+\end{equation}
+
+So, solving for $T_0$ that gives the best bound, we obtain the regret bound is $\sqrt{4Td\log{\frac{eT}{d}}}$.
+
+
+
+\bibliography{stats710}
+\end{document}
+
