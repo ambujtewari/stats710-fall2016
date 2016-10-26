@@ -47,7 +47,7 @@ Now we revisit the non-stochastic bandits problem. We have shown that EXP$3$ giv
 Given a fixed but unknown set of loss $l_{a,t},a\in \actions$, the learner does the following
 \begin{algorithmic}[1]
 \FOR{t=1 \TO T}
-\STATE Receive "advice" from $N$ "experts": $\xi_t^1,\ldots,\xi_t^N$, $N$ probability measures over $\actions$
+\STATE Receive ``advice" from $N$ ``experts": $\xi_t^1,\ldots,\xi_t^N$, $N$ probability measures over $\actions$
 \STATE Combine $\xi_t^i$, $i=1,\ldots,N$ into a single probability measure $p_t$ over $\actions$
 \STATE Select an action $A_t\sim p_t$
 \STATE Suffer loss $l_{A_t,t}$
@@ -57,7 +57,7 @@ The aim is to design a strategy of combining the advice so as to minimize the ex
 \begin{equation}\label{regret}
 \max_{k=1,\ldots,N}\E{\sum_{t=1}^Tl_{A_t,t}-Y_{k,T}}
 \end{equation}
-against the (unknown) best expert, where $Y_{k,T}=\sum_{t=1}^Ty_{k,t}$ with each $y_{k,t}=(\xi_t^k)^Tl_t=\sum_{a\in \actions}\xi_{a,t}^kl_{a,t}$ is the cumulative loss of the $k$-th expert. Notice that when $N=\vert \actions\vert $ and $\xi_t^a$ is a point mass at $a\in\actions$ for all $t$, then the regret \eqref{regret} coincides with the one used for EXP$3$. As a side note, in contrast to Boosting which produces strong learners out of weak ones, the goal here is less ambitious, i.e.~to do no much worse than the best choice.
+against the (unknown) best expert, where $Y_{k,T}=\sum_{t=1}^Ty_{k,t}$ with each $y_{k,t}=(\xi_t^k)^Tl_t=\sum_{a\in \actions}\xi_{a,t}^kl_{a,t}$ is the cumulative loss of the $k$-th expert. Notice that when $N=\vert \actions\vert $ and $\xi_t^a$ is a point mass at $a\in\actions$ for all $t$, then the regret \eqref{regret} coincides with the one used for EXP$3$. As a side note, in contrast to Boosting which produces strong learners out of weak ones, the goal here is less ambitious, i.e., to do not much worse than the best choice.
 \subsection{EXP4 algorithm}
 \begin{algorithm}
 \caption{EXP$4$ with $N$ experts}\label{exp4}
@@ -72,7 +72,7 @@ against the (unknown) best expert, where $Y_{k,T}=\sum_{t=1}^Ty_{k,t}$ with each
 \STATE Estimate the loss values $\tilde{l}_{a,t}=\frac{l_{a,t}}{p_{a,t}}\ind{(A_t=a)}$ for $a\in \actions$
 \STATE Estimate the loss each expert suffers $\tilde{y}_{k,t}=\sum_{a\in \actions}\xi_{a,t}^k\tilde{l}_{a,t}$ for $1\leq k\leq N$
 \STATE Update the cumulative estimated loss of each expert $\tilde{Y}_{k,t}=\tilde{Y}_{k,t-1}+\tilde{y}_{k,s}$ for $1\leq k\leq N$
-\STATE Update $q_{k,t+1}= \exp(-\eta\tilde{Y}_{k,t})/\sum_{k^*=1}^N\exp(-\eta\tilde{Y}_{k^*,t})$
+\STATE Update $q_{k,t+1}= \exp(-\eta\tilde{Y}_{k,t})/\sum_{k'=1}^N\exp(-\eta\tilde{Y}_{k',t})$
 \ENDFOR
 \end{algorithmic}
 \end{algorithm}
@@ -93,7 +93,7 @@ Now we proceed to the main proof. Similar to the key inequality of the EXP$3$ pr
 \begin{equation}\label{keyinq}
 q_t^T\tilde{y}_t\leq \frac{\eta}{2}q_t^T\tilde{y}_t^2+\Phi_{t-1}-\Phi_t,
 \end{equation}
-where the squaring operation is component-wise, the term $\frac{\eta}{2}q_t^T\tilde{y}_t^2$ comes from controlling the cumulant generating function, and the potential function
+where the squaring operation is component-wise, the term $\frac{\eta}{2}q_t^T\tilde{y}_t^2$ comes from controlling the cumulant generating function, and the potential function $\Phi_t$ is defined as:
 \begin{equation*}
 \Phi_t=\frac{1}{\eta}\log [\frac{1}{N}\sum_{k=1}^N\exp(-\eta\tilde{Y}_{k,t})].
 \end{equation*}
@@ -110,13 +110,13 @@ Now it is clear that, in order to bound the cumulative loss of EXP$4$, we need t
 as well as
 \begin{eqnarray}
 \nonumber q_t^T\tilde{y}_{t}^2&=&\sum_{k=1}^Nq_{k,t}\tilde{y}_{k,t}^2\\
-\nonumber&=&\sum_{k=1}^Nq_{k,t}(\sum_{a\in \actions}\xi_{a,t}^k\tilde{l}_{a,t})^2\\
-&\leq&\sum_{k=1}^Nq_{k,t}\sum_{a\in \actions}\xi_{a,t}^k\tilde{l}_{a,t}^2\label{meansq} \\
-&\leq&\sum_{a\in \actions}\sum_{k=1}^Nq_{k,t}\xi_{a,t}^k\tilde{l}_{a,t}^2\label{sqmean} \\
+&=&\sum_{k=1}^Nq_{k,t}(\sum_{a\in \actions}\xi_{a,t}^k\tilde{l}_{a,t})^2 \label{meansq} \\
+&\leq&\sum_{k=1}^Nq_{k,t}\sum_{a\in \actions}\xi_{a,t}^k\tilde{l}_{a,t}^2 \label{sqmean} \\
+\nonumber&=&\sum_{a\in \actions}\sum_{k=1}^Nq_{k,t}\xi_{a,t}^k\tilde{l}_{a,t}^2\\
 \nonumber&=&\sum_{a\in \actions}\tilde{l}_{a,t}^2\sum_{k=1}^Nq_{k,t}\xi_{a,t}^k=\sum_{a\in \actions}\tilde{l}_{a,t}^2p_{a,t}=\frac{l_{A_t,t}^2}{p_{A_t,t}}\\
 \nonumber&\leq&\frac{1}{p_{A_t,t}},
 \end{eqnarray}
-where in passing from \eqref{meansq} to \eqref{sqmean} we apply Cauchy Schwartz inequality to the discrete random variable that takes value $\tilde{l}_{a,t}$ with probability $\xi_{a,t}^k$ and in the last line the boundedness of loss is used. Use the above two bounds to further bound \eqref{ineq1}
+where in passing from \eqref{meansq} to \eqref{sqmean} we used the fact that $(\E{Z})^2 \le \E{Z^2}$ for the discrete random variable $Z$ that takes value $\tilde{l}_{a,t}$ with probability $\xi_{a,t}^k$ and in the last line the boundedness of loss is used. Use the above two bounds to further bound \eqref{ineq1}
 \begin{equation*}
 \sum_{t=1}^Tl_{A_t,t}-\tilde{Y}_{k,T}\leq\frac{\eta}{2}\sum_{t=1}^T\frac{1}{p_{A_t,t}}+\frac{\log N}{\eta},
 \end{equation*}
