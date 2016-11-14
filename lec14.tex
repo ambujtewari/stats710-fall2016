@@ -1,0 +1,179 @@
+\documentclass[11pt]{article}
+\usepackage{url,amsmath,setspace,amssymb,amsthm,fullpage,cleveref}
+\usepackage{algorithm,algorithmic}
+
+% Scribe template modified from original created by UC Berkeley's EECS department
+
+\newcommand{\heading}[5]{
+   \renewcommand{\thepage}{#1-\arabic{page}}
+   \noindent
+   \begin{center}
+   \framebox[\textwidth]{
+     \begin{minipage}{0.9\textwidth} \onehalfspacing
+       {\bf STATS 710 -- Seq. Decision Making with mHealth Applications} \hfill #2
+
+       {\centering \Large #5
+
+       }\medskip
+
+       {\it #3 \hfill #4}
+     \end{minipage}
+   }
+   \end{center}
+}
+
+\newcommand{\scribe}[4]{\heading{#1}{#2}{Instructors:
+Susan Murphy and Ambuj Tewari}{Scribe: #4}{Lecture #1: #3}}
+
+\input{macros}
+\newcommand{\numbereqn}{\addtocounter{equation}{1}\tag{\theequation}}
+
+\bibliographystyle{alpha}
+
+\begin{document}
+\scribe{14}{Nov 1, 2016}{Introduction to Reinforcement Learning: Transitioning from Contextual Bandits}{Nick Seewald}
+\section{Review of the Contextual Bandit Problem}
+We begin by reviewing the contextual bandit problem in a stochastic setting. In mHealth, delayed effects of actions are often important. However, the contextual bandit problem struggles to properly account for these. Thus, we shift our attention to reinforcement learning (RL), which allows us to more easily study delayed effects, but at the cost of our ability to develop solid regret bounds. 
+
+We begin by re-introducing the contextual bandit problem using notation borrowed from RL. Consider i.i.d. context-action pairs 
+\[
+	\left(S_{j}, R_{j}\right) = \left\{S_{j}, \left\{R_{j}^{a}\right\}_{a\in\actions}\right\}, \quad j=1,\ldots, M,
+\]
+with common distribution $D$. Define $r_{a}(s) = \mathbb{E}\left[R_{j}^{a} \mid S_{j} = s\right]$ and $p(s) = P\left(S_{j} = s\right)$. A \textit{policy} is a map $\pi:\states \to \actions$ used to select actions. The action at time $j$ is taken according to the policy $\pi$ so that $A_{j} = \pi\left(S_{j}\right)$.
+
+\subsection{Setting and Optimal Policy}
+The general flow of information in a contextual bandit is
+\begin{algorithmic}[1]
+	\FOR{$j=1$ \TO $M$}
+	\STATE Learner sees context $S_{j} \in \states$
+	\STATE Learner selects action $A_{j} \in \actions$
+	\STATE Learner receives reward $R_{j} = R_{j}^{A_{j}}$
+	\ENDFOR
+\end{algorithmic}
+The problem is how to choose a policy $\pi$ which selects actions $A_{j}$. 
+
+Define the space of possible policies by $\Pi = \actions^{\states}$. Recall that the optimal policy $\pi^{*}$ is that which maximizes the value function 
+\[
+	V_{\pi} = \mathbb{E}\left[R_{j}^{\pi\left(S_{j}\right)}\right] = \mathbb{E} \left[r_{\pi\left(S_{j}\right)}\left(S_{j}\right)\right].
+\]
+Define $V_{\pi^{*}} = \max_{\pi\in\Pi} V_{\pi}$.
+
+\begin{proposition}
+	The optimal policy in the above setting is the one which maximizes the value function for every context $s_{j} \in \states$: $\pi^{*}(s) = \argmax_{a} r_{a}(s)$. 
+\end{proposition}
+\begin{proof}
+	We show that the value function for $\pi^{*}$ as defined in the proposition is larger than that for any other policy $\pi \in \Pi$. 
+	\begin{align*}
+		V_{\pi^*} &= \mathbb{E}\left[r_{\pi^{*}\left(S_{j}\right)}\left(S_{j}\right)\right] \\
+		&= \mathbb{E}\left[\max_{a\in\actions} r_{a}\left(S_{j}\right)\right] \\
+		&\geq \mathbb{E}\left[r_{\pi\left(S_{j}\right)}\left(S_{j}\right)\right] \\
+		&= V_{\pi}.
+	\end{align*}
+	Since $\pi^{*}\in\Pi$, this completes the proof.
+\end{proof}
+
+\subsection{The Learning Algorithm}
+At time $j$, the learning algorithm determines $A_{j}$. Usually, a policy $\hat{\pi}^{j}$ is formed from $\mathcal{H}_{j-1}$, the history up to time $j$:
+\[
+	\mathcal{H}_{j-1} = \left\{S_{i}, A_{i}, R_{i}^{A_{i}} : i<j \right\} \quad \text{(and sometimes additional randomness)}.
+\]
+We select $A_{j} = \hat{\pi}_{j}\left(S_{j}\right)$. 
+
+Our goal is to device a learning algorithm $\la$ that achieves low expected regret,
+\begin{align*}
+	\regret_{M}\left(\la, D, \Pi\right) &= \sup_{\pi \in \Pi} \mathbb{E}\left[\sum_{j=1}^{M} R_{j}^{\pi\left(S_{j}\right)} - \sum_{j=1}^{M} R_{j}^{A_{j}}\right] \\
+	&= \sup_{\pi\in\Pi} \left(MV_{\pi} - \mathbb{E}\left[\sum_{j=1}^{M} R_{j}^{A_{j}}\right]\right) \\
+	&= MV_{\pi^{*}} - \mathbb{E}\left[\sum_{j=1}^{M} R_{j}^{A_{j}}\right].
+\end{align*}
+Using EXP3 separately for each context, we achieve $\regret_{M} = O\left(\sqrt{M} \sqrt{\left|\states\right| \left|\actions\right| \log\left|\actions\right|}\right)$.
+
+\section{Introduction to Reinforcement Learning}
+Until now, the horizon for each episode $j=1,\ldots,M$ has been 1; that is, $\left\{S_{j}, \left\{R_{j}^{a}\right\}_{a\in\actions}\right\}$ are i.i.d. for $j=1,\ldots,M$. Now, we move to the setting with $M$ episodes (as before), but each episode has a whole series of $(S_{j}, R_{j})$ tuples. From now on, we now refer to contexts $S\in\states$ as ``states''. Consider i.i.d. $T$-tuples
+\[
+	\left\{S_{j,0}, \left\{S_{j,1}^{a_{0}}\right\}_{a_{0} \in \actions}, \left\{S_{j,2}^{a_{1}}\right\}_{a_{1} \in \actions}, \ldots, \left\{S_{j,T}^{a_{T-1}}\right\}_{a_{T-1} \in \actions}\right\} \quad j=1,\ldots,M.
+\]
+
+In this setting, a policy is a vector $\pi = \left(\pi_{0}, \ldots, \pi_{T-1}\right)^\top$ with elements $\pi_{t}: \states\to\actions$ that is used to select actions so that
+\[
+	A_{j,0} = \pi_{0}\left(S_{j,0}\right), \ A_{j,1} = \pi_{1}\left(S_{j,1}^{A_{j,0}}\right), \ldots, \ A_{j,T-1} = \pi_{T-1}\left(S_{j,T-1}^{A_{j,T-2}}\right).
+\]
+
+The distribution $D$ of the tuples is described by the initial state distribution $p(s_{0}) = P\left(S_{j,0}=s_{0}\right)$ We also define a \textit{transition function}
+\[
+	p_{a}\left(s, s'\right) = P\left(S_{j,t+1}^{A_{j,t}} = s' \mid S_{j,t}^{A_{j,t-1}} = s, A_{j,t} = a\right).
+\]
+Note that $p_{a}(s,s')$ does not depend on $t$. This is stationarity. We assume the Markovian property; namely, that for history $\tilde{\history}_{j,t} = \left\{S_{j,0}, A_{j,0}, \ldots, A_{j,t-2}, S_{j,t-1}^{A_{j,t-2}}\right\}$, 
+\[
+	P\left(S_{j,t+1}^{A_{j,t}} =s \mid \tilde{\history}{j,t-1}, S_{j,t}^{A_{j,t-1}} = s, A_{j,t} = a\right) = p_{a}\left(s,s'\right).
+\]
+
+Our notion of reward is a generalized version of what has been used in the past. Define $R_{j,t} = R\left(S_{j, t}^{A_{j,t-1}}, A_{j,t}, S_{j,t+1}^{A_{j,t}}\right)$, where $R$ is some known function. In the bandit setting,
+\[
+	E\left[R_{j,t}\mid S_{j,t}^{A_{j,t-1}} = s, A_{j,t} = a\right] = \sum_{s'} R(s, a, s') p_{a}(s,s') := r_{a}(s). 
+\]
+The reward depends on the current state because the costs of taking a particular action may vary greatly with aspects of that current state. It also depends on the state following the action, since we wish to capitalize on states states which may lead to actions which give higher rewards later on.
+
+When $T = 1$ (as in the usual contextual bandit), the set of states is $\left\{S_{j,0}, \left\{S_{j,1}^{a_{0}}\right\}_{a_{0}\in\actions}\right\} = \left\{S_{j,0}, A_{j,0}, S_{j,1}\right\}$ and the reward received after the $j^{\text{th}}$ episode is $R_{j,0} = R\left(S_{j,0}, A_{j,0}, S_{j,1}\right)$.
+
+\subsection{Setting and Optimal Policy}
+The general flow of information is 
+\begin{algorithmic}[1]
+	\FOR{j=1 \TO M}
+	\STATE Learner sees $S_{j,0}\in \states$
+	\FOR{t=0 \TO T-1}
+	\STATE Learner selects action $A_{j,t}\in\actions$
+	\STATE Learner sees state $S_{j,t+1}^{A_{j,t}} \in \states$
+	\STATE Learner receives reward $R_{j,t} = R\left(S_{j,t}^{A_{j,t-1}}, A_{j,t}, S_{j,t+1}^{A_{j,t}}\right)$
+	\ENDFOR
+	\ENDFOR
+\end{algorithmic}
+
+Consider the policy space $\Pi = \left(\actions^{\states}\right)^{T}$. We redefine our notion of the value function, which is commonly conditioned on the initial state:
+\begin{equation}
+	\label{eq:valuefcn}
+	V_{\pi}^{T}\left(s_{0}\right) = \mathbb{E}_{A\sim\pi}\left[\sum_{t=0}^{T-1} R_{j,t} \mid S_{j,0} = s_{0}\right].
+\end{equation}
+The optimal policy $\pi^{*}$ should maximize $V_{\pi}^{T}(s_{0})$.
+
+\begin{proposition}
+	The optimal policy $\pi^*(s)$ is that which, for every time $t=1,\ldots, T$, maximizes $r_{\pi(s)}(s) + \sum_{s'} p_{\pi(s)}(s,s') V_{\pi^*_{T-t}}^{t-1}(s')$, where $V_{\pi^*_{T-t}}^{t}(s)$ is defined to be $\max_{a} r_{a}(s) + \sum_{s'} p_{a}(s,s') V_{\pi^{*}_{T-t}}^{t-1}(s')$ and $V_{\pi^*_{0}}^{t}(s) := 0$.
+\end{proposition}
+\begin{proof}
+	We begin with the definition of $\max_{\pi}V_{\pi}^{T}(s_0)$:
+	\begin{align*}
+		\max_{\pi} V_{\pi}^{T}\left(s_{0}\right) &= \max_{\pi_{0}} \max_{\pi_{1}} \cdots \max_{\pi_{T-1}} \mathbb{E}\left[\sum_{t=0}^{T-1} R_{j, t} \mid S_{j,0} = s_{0}\right] \\
+		&= \max_{\pi_{0}}\cdots \max_{\pi_{T-1}} \mathbb{E}_{A\sim\pi} \left[\sum_{t=0}^{T-2} R_{j,t} + \mathbb{E}\left[R_{j,T-1} \mid S_{j,T-1}, A_{j,T-1} = \pi_{T-1}\left(S_{j,T-1}\right)\right]\right] \numbereqn \label{eq:rl-pi*-step1}
+	\end{align*}
+	Notice that the internal expectation in~\cref{eq:rl-pi*-step1} can be rewritten as $r_{\pi_{T-1}(S_{j, T-1})}\left(S_{j,T-1}\right)$, and select $\pi_{T-1}^{*}(s) = \argmax_{a} r_{a}(s)$. Then we have
+	\begin{equation}
+		\label{eq:rl-pi*-V1}
+		\max_{\pi} V_{\pi}^{T}\left(s_{0}\right) \leq \max_{\pi_{0}}\cdots\max_{\pi_{T-2}} \mathbb{E}_{A\sim\pi} \left[\sum_{t=0}^{T-2} R_{j,t} + r_{\pi^{*}_{T-1}\left(S_{j,T-1}\right)}\right]
+	\end{equation}
+	Define $V_{\pi}^{1}(s) = r_{\pi_{T-1}(s)}(s)$, so that $V_{\pi^{*}}^{1}(s) = r_{\pi_{T-1}^{*}(s)}(s)$. Now the right-hand side of~\cref{eq:rl-pi*-V1}, denoted RHS(\ref{eq:rl-pi*-V1}), is
+	\begin{align*}
+		\text{RHS(\ref{eq:rl-pi*-V1})} &= \max_{\pi_{0}}\cdots\max_{\pi_{T-2}} \mathbb{E}_{A\sim \pi}\left[ \sum_{t=0}^{T-2} R_{j, t} + V_{\pi^{*}}\left(S_{j, T-1}\right) \mid S_{j, 0} = s_{0} \right] \\
+		&\leq \max_{\pi_{0}} \cdots \max_{\pi_{T-2}} \mathbb{E}_{A\sim \pi} \left[\sum_{t=0}^{T-3} R_{j,t} + \mathbb{E}\left[ R_{j,T-2} + V_{\pi^{*}}^{1}\left(S_{j,T-1}\right) \mid S_{j,T-2}, A_{j,T-2} = \pi_{T-2}\left(S_{j,T-2}\right) \right]\right]. \numbereqn \label{eq:rl-pi*-step2}
+	\end{align*}
+	As above, notice that the internal expectation in~\cref{eq:rl-pi*-step2} is equal to 
+	\[
+		r_{\pi_{T-2}\left(S_{j,T-2}\right)}\left(S_{j,T-2}\right) + \sum_{s'} p_{\pi_{T-2}\left(S_{j,T-2}\right)}\left(S_{j,T-2}, s'\right).
+	\]
+	Select $\pi_{T-2}^{*}(s) = \argmax_{a} \left(r_{a}(s) + \sum_{s'} p_{a}\left(s,s'\right) V_{\pi^*}(s')\right)$. Then
+	\[
+		\text{RHS(\ref{eq:rl-pi*-step2})} \leq \max_{\pi_{0}} \cdots \max_{\pi_{T-3}} \mathbb{E}_{A\sim\pi} \left[ \sum_{t=0}^{T-3} R_{j,t} + V_{\pi^*}^{2}\left(S_{j,T-2}\right) \mid S_{j,0} = s_{0} \right],
+	\]
+	where $V_{\pi^{*}}^{2} = \max_{a}\left(r_{a}(s) + \sum_{s'} p_{a}(s,s') V_{\pi^{*}}^{1}(s')\right)$. Continuing in this way, by iteratively defining
+	\begin{gather*}
+		\pi_{T-t}^{*}(s) := \argmax_{a} r_{a}(s) + \sum_{s'} p_{a}(s,s') V_{\pi^{*}_{T-t}}^{t-1}(s') \\
+		V_{\pi^*_{T-t}}^{t}(s) := \max_{a} r_{a}(s) + \sum_{s'} p_{a}(s,s') V_{\pi^{*}_{T-t}}^{t-1}(s')
+	\end{gather*}
+	for $t=3,\ldots,T$ we arrive at 
+	\[
+		\max_{\pi} V_{\pi}^{T}(s_{0}) \leq V_{\pi^*}^{T}(s_{0})
+	\]
+	Since $\pi^* \in \Pi$ by definition, we must have that it is the optimal policy.
+\end{proof}
+
+%\bibliography{stats710}
+\end{document}
+
