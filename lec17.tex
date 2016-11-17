@@ -1,0 +1,141 @@
+\documentclass[11pt]{article}
+\usepackage{url,amsmath,setspace,amssymb,amsthm,fullpage}
+\usepackage{algorithm,algorithmic}
+
+% Scribe template modified from original created by UC Berkeley's EECS department
+%\DeclareMathOperator*{\argmax}{arg\,max}
+\newcommand{\heading}[5]{
+   \renewcommand{\thepage}{#1-\arabic{page}}
+   \noindent
+   \begin{center}
+   \framebox[\textwidth]{
+     \begin{minipage}{0.9\textwidth} \onehalfspacing
+       {\bf STATS 710 -- Sequential Decision Making with mHealth Applications} \hfill #2
+
+       {\centering \Large #5
+
+       }\medskip
+
+       {\it #3 \hfill #4}
+     \end{minipage}
+   }
+   \end{center}
+}
+
+\newcommand{\scribe}[4]{\heading{#1}{#2}{Instructors:
+Susan Murphy and Ambuj Tewari}{Scribe: #4}{Lecture #1: #3}}
+
+\input{macros}
+
+\bibliographystyle{alpha}
+
+\begin{document}
+\scribe{17}{Nov 10, 2016}{Reinforcement Learning with UCB: Redux}{Ian Fox}
+
+\section{Recap}
+The presentation is roughly (but not exactly) based on \cite{auer2005online}.
+
+We define expected regret as follows:
+$$ R_M(L,D,\Pi) = E[\sum_{j=1}^{M} V^2_{\pi^*}(S_0) - \sum_{j=1}^{M} V^2_{\pi^{j-1}}(S_0)]$$
+
+The RL version of the UCB algorithm in a simplified setting is as follows:
+\begin{algorithm}
+	\caption{Simple RL UCB}
+	\begin{algorithmic}[1]
+		\FOR{j=1 \TO M}
+		\STATE Learner sees $S_{j,0} = S_0$
+		\FOR{t=0,1}
+		\STATE Learner selects $A_{j,k}$ using $\pi^{j-1}$
+		\STATE Learner sees $S_{j,t+1}$
+		\STATE Learner receives $R_{j,t} = R(S_{j,t}, A_{j,t}, S_{j,t+1})$
+		\ENDFOR
+		\STATE Learner forms $\pi^j$
+		\ENDFOR
+	\end{algorithmic}
+\end{algorithm}
+
+We define the following statistics:
+\begin{itemize}
+	\item $N_{s,a}^{m-1} = \sum_{j=1}^{m-1} \sum_{t=0}^1 \mathbf{1}[S_{j,t} = s, A_{j,t} = a]$
+	\item $\rho_{s,a}^{m-1} = \sum_{j=1}^{m-1} \sum_{t=0}^1 \mathbf{1}[S_{j,t} = s, A_{j,t} = a]R_{j,t}$
+	\item $p_{s,a,s'}^{m-1} = \sum_{j=1}^{m-1} \sum_{t=0}^1 \mathbf{1}[S_{j,t} = s, A_{j,t} = a, S_{j,t+1} = s']$
+	\item UCB average reward: $\tilde{r}_a^{m-1}(s) = \frac{\rho_{s,a}^{m-1}}{N_{s,a}^{m-1}} + \sqrt{\frac{c \log(m)}{N_{s,a}^{m-1}}}$
+	\item UCB transition probability: $\tilde{p}_a^{m-1}(s,s') = \frac{p_{s,a,s'}^{m-1}}{N_{s,a}^{m-1}} + \sqrt{\frac{c \log(m)}{N_{s,a}^{m-1}}}$
+\end{itemize}
+
+The UCB algorithm forms two policies for each $j$, one per time step. The policies are generated as follows:
+\begin{gather*}
+\pi_1^{m-1}(s) = \argmax_a \tilde{r}_a^{m-1}(s) = \argmax_{\pi_1} \tilde{V}^{1, m-1}_{\pi_1}(s)  \\
+\tilde{V}^{1, m-1}_{\pi_1}(s) = \tilde{r}_{\pi(s)}^{m-1}(s) \\
+\pi_0^{m-1}(s) = \argmax_a \tilde{r}_a^{m-1}(s) + \sum_{s'} \tilde{p}_a^{\pi_1^{m-1}}(s, s') \tilde{r}_{\pi_1^{m-1}}^{m-1}(s') = \argmax_{\pi_0} \tilde{V}^{2, m-1}_{\pi_0, \pi_1^{m-1}}(s)\\
+\tilde{V}^{2, m-1}_{\pi}(s) = \tilde{r}_{\pi(s)}^{m-1}(s) + \sum_{s'} \tilde{p}_{\pi_1(s)}^{\pi_1^{m-1}}(s, s') \tilde{r}_{\pi_1}^{m-1}(s')
+\end{gather*}
+where $\tilde{V}^{1, m-1}_{\pi_1}(s)$ is the value function when 1 time step remains, similarly $\tilde{V}^{2, m-1}_{\pi_0, \pi_1}(s)$ is the value when 2 time steps remain.
+
+Optimal policies are defined:
+\begin{gather*}
+\pi_1^*(s) = \argmax_a E[R|S=s, A=a] \\
+E[R|S=s, A=a] \triangleq V_{\pi^*}(s) \\
+\pi_0^*(s) = \argmax_a E[R_0|S_0=s, A_0=a] +E[V^{1}_{\pi^*(s_1)}(s_1) | S_0 = s, A_0 = a]\\
+= \argmax_a r_a(s) + \sum_{s'}p_a(s, s') V^{1}_{\pi^*(s)}(s')
+\end{gather*}
+
+Our goal is to calculate $\pi_0^*, \pi_1^*$ for which $E_{\pi_0, \pi_1}[R_0+R_1]$ is maximal. Note:
+$$V_{\pi_0, \pi_1}^2(s) = r_{\pi_0(s)}(s) + \sum_{s'}p_{\pi_0(s)}(s, s') V^1_{\pi_1(s')}$$
+
+\section{UCB Regret}
+
+\begin{theorem}
+	$R_M(L,D,\Pi) = O(\frac{\log(M)}{\Delta})$ where the gap parameter $\Delta = \min_{\pi \ne \pi^*} V^2_{\pi^*}(s_0) - V^2_{\pi}(s_0)$
+\end{theorem}
+\textit{Proof:} First, note that we can approach this RL problem like a simple MAB, treating each policy as an arm. Using this approach we achieve this regret bound, but with a constant proportional to $|A|^{|S|}$. The author of the paper claims they proved a bound polynomial in $|A|, |S|$, but did not explicitly state the proof. The proof given here doesn't achieve this polynomial bound.
+
+The regret suffered is
+\begin{gather*}
+\sum_{m=1}^{M} V^2_{\pi^*}(s_0) - V^2_{\pi^{m-1}}(s_0) \\
+= \sum_{m=1}^{M} (V^2_{\pi^*}(s_0) - V^2_{\pi^{m-1}}(s_0)) \mathbf{1}[A_{m,0} = \pi_0^{m-1}, A_{m,1} = \pi_1^{m-1}(s_{m-1})]\mathbf{1}[\tilde{V}^{2, m-1}_{\pi^{m-1}}(s_0)-\tilde{V}^{2, m-1}_{\pi^{*}}(s_0) \ge 0] \\
+\le \sum_{\pi \ne \pi^*} \Delta_\pi \sum_{m=1}^{M} \mathbf{1}[A_{m,0} = \pi_0^{m-1}, A_{m-1} = \pi_1^{m-1}(s_{m-1})]\mathbf{1}[\tilde{V}^{2, m-1}_{\pi^{m-1}}(s_0)-\tilde{V}^{2, m-1}_{\pi^{*}}(s_0) \ge 0] \\
+* \mathbf{1}[N^{m-1}_{s_0, \pi_0(s_0)} \ge l_{\pi_0}, N^{m-1}_{\pi_1} \ge l_{\pi_1}] + \sum_{\pi \ne \pi^*} \Delta_\pi l
+\end{gather*}
+where 
+\begin{gather*}
+N_{\pi_1}^{m-1} = \sum_{j=1}^{m-1} \mathbf{1}[\Delta_{j, 1} = \pi_1(S_{j,1})] \\
+= \sum_{j=1}^{m-1} \mathbf{1}[A_{j,1} = \pi_1(S_{j,1}), S_{j,1} = 1] + \mathbf{1}[A_{j,1} = \pi_1(S_{j,1}), S_{j,1} = 0] \\
+= N_{1, \pi_1(0)}^{m-1} + N_{0, \pi(0)}^{m-1}
+\end{gather*}
+
+To put some words to this, we're following the proof strategy for the MAB UCB regret bound. We're assuming that we mess up, using suboptimal policy $\pi$, at least $l_\pi$ times. We've manipulated the regret term to account for this. We define $$l_\pi \triangleq \frac{36*\log(M)}{\Delta^2_\pi}$$. Now we'll use these goofs to control the probability of messing up in the future, by controlling:
+$$
+\sum_{\pi \ne \pi^*} \Delta_\pi \sum_{m=1}^{M} \mathbf{1}[\tilde{V}^{2, m-1}_{\pi^{m-1}}(s_0)-\tilde{V}^{2, m-1}_{\pi^{*}}(s_0) \ge 0] \mathbf{1}[N^{m-1}_{s_0, \pi_0(s_0)} \ge l_{\pi_0}, N^{m-1}_{\pi_1} \ge l_{\pi_1}]
+$$
+We'll focus on $\mathbf{1}[\tilde{V}^{2, m-1}_{\pi^{m-1}}(s_0)-\tilde{V}^{2, m-1}_{\pi^{*}}(s_0) \ge 0]$
+\begin{gather*}
+\tilde{V}^{2, m-1}_{\pi^{m-1}}(s_0)-\tilde{V}^{2, m-1}_{\pi^{*}}(s_0) \\
+ = \tilde{V}^{2, m-1}_{\pi^{m-1}}(s_0)-V_\pi^2(s_0) - (\tilde{V}^{2, m-1}_{\pi^{*}}(s_0) - V_{\pi^*}^2(s_0)) + V_\pi^2(s_0) - V_{\pi^*}^2(s_0)
+\end{gather*}
+so equivalently
+\begin{gather*}
+\mathbf{1}[\tilde{V}^{2, m-1}_{\pi^{m-1}}(s_0)-\tilde{V}^{2, m-1}_{\pi^{*}}(s_0)] \\
+= \mathbf{1}[\tilde{V}^{2, m-1}_{\pi^{m-1}}(s_0)-V_\pi^2(s_0) - (\tilde{V}^{2, m-1}_{\pi^{*}}(s_0) - V_{\pi^*}^2(s_0)) + V_\pi^2(s_0) - V_{\pi^*}^2(s_0) \ge 0]
+\end{gather*}
+Recall that 
+$$\mathbf{1}[A+B+C \ge 0] \le \mathbf{1}[A \ge 0] + \mathbf{1}[B \ge 0] +\mathbf{1}[C \ge 0]$$
+Let's focus on $\tilde{V}^{2, m-1}_{\pi^{m-1}}(s_0)-V_\pi^2(s_0)$ and write things out according to our definitions (warning: things are getting messy):
+\begin{gather*}
+\tilde{V}^{2, m-1}_{\pi^{m-1}}(s_0)-V_\pi^2(s_0) = \\
+\frac{\rho^{m-1}_{s_0, \pi_0(s_0)}}{N_{s_0, \pi_0(s_0)}} - r_{\pi_0(s_0)} + \sqrt{\frac{c \log(m)}{N_{s_0, \pi_0(s_0)}}} \\
++ \sum_s p_{\pi_0(s)}(s_0, s) ( \frac{\rho_{s_1, \pi_1(s)}}{N_{s, \pi_1(s_1)}} - r_{\pi_1(s)}(s)+ \sqrt{\frac{c \log(m)}{N_{s, \pi(s)}}}) \\ 
++ (\frac{\rho^{m-1}_{s_0, \pi_0(1)}}{N_{s_0, \pi_0}} - p_{\pi_0(s_0)}(s_0, 1) + \sqrt{\frac{c \log(m)}{N_{s_0, \pi_0(s_0)}}})(\tilde{r}_{\pi_1(1)}(1) - \tilde{r}_{\pi_1(0)}(0))^+ \\
++ (\frac{\rho^{m-1}_{s_0, \pi_0(0)}}{N_{s_0, \pi_0}} - p_{\pi_0(s_0)}(s_0, 0) + \sqrt{\frac{c \log(m)}{N_{s_0, \pi_0(s_0)}}})(\tilde{r}_{\pi_1(0)}(0) - \tilde{r}_{\pi_1(1)}(1))^+ \\
+= \\ 
+\frac{\rho^{m-1}_{s_0, \pi_0(s_0)}}{N_{s_0, \pi_0(s_0)}} - r_{\pi_0(s_0)} - \sqrt{\frac{c \log(m)}{N_{s_0, \pi_0(s_0)}}} \\
++ \sum_s p_{\pi_0(s)}(s_0, s) ( \frac{\rho_{s_1, \pi_1(s)}}{N_{s, \pi_1(s_1)}} - r_{\pi_1(s)}(s)+ \sqrt{\frac{c \log(m)}{N_{s, \pi(s)}}}) \\ 
++ (\frac{\rho^{m-1}_{s_0, \pi_0(1)}}{N_{s_0, \pi_0}} - p_{\pi_0(s_0)}(s_0, 1) - \sqrt{\frac{c \log(m)}{N_{s_0, \pi_0(s_0)}}})(\tilde{r}_{\pi_1(1)}(1) - \tilde{r}_{\pi_1(0)}(0))^+ \\
++ (\frac{\rho^{m-1}_{s_0, \pi_0(0)}}{N_{s_0, \pi_0}} - p_{\pi_0(s_0)}(s_0, 0) - \sqrt{\frac{c \log(m)}{N_{s_0, \pi_0(s_0)}}})(\tilde{r}_{\pi_1(0)}(0) - \tilde{r}_{\pi_1(1)}(1))^+ \\
++ 2 \sqrt{\frac{c \log(m)}{N_{s_0, \pi_0(s_0)}}} + 2 \sqrt{\frac{c \log(m)}{N_{s_0, \pi_0(s_0)}}}(\tilde{r}_{\pi_1(1)}(1) - \tilde{r}_{\pi_1(0)}(0))^+ +  2 \sqrt{\frac{c \log(m)}{N_{s_0, \pi_0(s_0)}}}(\tilde{r}_{\pi_1(1)}(0) - \tilde{r}_{\pi_1(0)}(1))^+
+\end{gather*}
+This is where we ran out of time. From here things get nice, except that we can't control the visitation rate (rare transitions), leading to the exponential blowup.
+\bibliography{stats710}
+\end{document}
+
+
