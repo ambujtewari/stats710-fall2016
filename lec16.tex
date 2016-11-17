@@ -1,0 +1,165 @@
+\documentclass[11pt]{article}
+\usepackage{url,amsmath,setspace,amssymb,amsthm,fullpage}
+\usepackage{algorithm,algorithmic}
+
+% Scribe template modified from original created by UC Berkeley's EECS department
+%\DeclareMathOperator*{\argmax}{arg\,max}
+\newcommand{\heading}[5]{
+   \renewcommand{\thepage}{#1-\arabic{page}}
+   \noindent
+   \begin{center}
+   \framebox[\textwidth]{
+     \begin{minipage}{0.9\textwidth} \onehalfspacing
+       {\bf STATS 710 -- Seq. Decision Making with mHealth Applications} \hfill #2
+
+       {\centering \Large #5
+
+       }\medskip
+
+       {\it #3 \hfill #4}
+     \end{minipage}
+   }
+   \end{center}
+}
+
+\newcommand{\scribe}[4]{\heading{#1}{#2}{Instructors:
+Susan Murphy and Ambuj Tewari}{Scribe: #4}{Lecture #1: #3}}
+
+\input{macros}
+
+\bibliographystyle{alpha}
+
+\begin{document}
+\scribe{16}{Nov 8, 2016}{Taming the Monster: {\scriptsize AKA How I Learned to Love Conning Bandits}}{Ian Fox}
+
+\section{Setup}
+Let's recall the contextual bandit setting
+
+\begin{algorithm}
+	\caption{The Contextual Bandit Setting}
+	\begin{algorithmic}[1]
+		\FOR{t=1 \TO T}
+		\STATE Learner receives $X_t \in \mathcal{X}$
+		\STATE Learner takes action $A_t \in \mathcal{A}$
+		\STATE Learner receives reward $R_t^{A_t}$
+		\ENDFOR
+	\end{algorithmic}
+\end{algorithm}
+
+
+The learner acts according to policy $\pi \in \Pi: \mathcal{X} \to \mathcal{A}$. For this lecture we will assume $|\Pi|$ is finite. We define $\pi^* = \argmax_{\pi \in \Pi} V(\pi)$, where $V(\pi) = \mathbf{E}[R^{\pi(X)}] = \mathbf{E}[\sum_{a \in \mathcal{A}}^{R^a} \mathbf{1}[\pi(X) = a]]$. We assume $(X, (R_a)_{a \in \mathcal{A}}) \sim_{iid} \mathcal{D}$ where $\mathcal{D}$ is fixed but unknown.
+
+Note: the following explanations/proofs are less complete than usual due to the complexity of the paper. Consider the following an extended, friendly abstract and look to the paper for a more complete treatment.
+
+\section{Contextual Bandits: What we Crave}
+The ideal contextual bandit algorithm has two properties:
+\begin{enumerate}
+	\item The algorithm accesses the policy class $\Pi$ only through an argmax oracle (AMO), that is, an existing algorithm that solves the problem: 
+	$$\argmax_{\pi \in \Pi}\frac{1}{|D|}\sum_{(X, (r^a)_{a \in \mathcal{A}}) \in \mathcal{D}}$$.
+	In other words, the AMO finds the policy that gives optimal performance on dataset $D$.
+	\item The algorithm is statistically optimal, that is, it only suffers $O(\sqrt{T})$ regret.
+\end{enumerate}
+
+It's clear why property 2 is desirable, but property 1 can be equally important. This is because as the size of the policy space increases, algorithms that need to directly interact with the $\Pi$ become intractable. Scalable AMO's exist, and are a convenient abstraction in any event (in CS we believe the more layers of abstraction the better).
+
+So far we've seen algorithms that have one or the other of these properties, but not both. Epoch-Greedy satisfies property 1, but because it explicitly separates exploration and exploitation it suffers $O(T^{\frac{2}{3}})$ regret. On the other hand, EXP4 satisfies property 2, achieving $O(\sqrt{T})$ regret, but it requires enumerating all policies in $\Pi$. This is infeasible for even fairly simple policy classes.
+
+\section{ILOVETOCONBANDITS}
+Now that we're all fired up and ready to go, let's introduce an algorithm that satisfies both properties, introduced in \cite{agarwal2014taming}. First, we'll give a natural template for this algorithm, then we'll fill in the details.
+
+\begin{algorithm}
+	\caption{Template}
+	\begin{algorithmic}[1]
+		\FOR{t=1 \TO T}
+		\STATE Maintain distribution $q_t$ over $\Pi$ \COMMENT{Don't worry about this for now}
+		\STATE Observe $X_t \in \mathcal{X}$
+		\STATE Draw $\pi_t \sim q_t$
+		\STATE Take action $A_t = \pi_t(X_t)$ \COMMENT{This means $p_t(a) = \sum_{\pi \in \Pi}q_t(\pi)\mathbf{1}[\pi(X_t) = a]$}
+		\STATE Apply importance weighting:
+		$$\hat{V}_t(\pi) = \frac{1}{t} \sum_{s=1}^t \sum_{a \in \mathcal{A}} \frac{R_s^a \mathbf{1}[A_s = a] \mathbf{1}[\pi(X_s) = a]}{p_s(a)}$$
+		\STATE Update $q_t$ to get $q_{t+1}$
+		\ENDFOR
+	\end{algorithmic}
+\end{algorithm}
+
+Note the estimation on line 6 is unbiased, but depending on the size of $p_s(a)$ it could have arbitrary variance. So when we go to fill in this template, we need to ensure:
+\begin{enumerate}
+	\item $p_s$ never gets too small
+	\item We can work with $q_t$ without enumerating $\Pi$
+\end{enumerate}
+
+Now, how do we go about choosing our $q_t$? We'll choose by solving the following optimization problem (OP):
+$$\argmin_q \sum_{\pi \in \Pi}q(\pi) \hat{Reg}_t(\pi) + k \mu_t \frac{1}{t} \sum_{j=1}^{t} KL(\mathcal{U}, q^{\mu_s}(a|X_s))$$
+Where:
+\begin{itemize}
+	\item $k$ is the number of actions,
+	\item $q$ can be any probability distribution over the policy classes,
+	\item $\mathcal{U}$ is the uniform distribution over actions,
+	\item $\mu_t = \sqrt{\frac{\log(\frac{|\Pi}{\delta})}{k t}}$, and
+	\item $q^{\mu_s}(a|X_s) = (1-\mu_s) \sum_{\pi \in \Pi} q(\pi)\mathbf{1}[\pi(X_s) = a] + \mu_s \mathcal{U}(a)$.
+	\item $KL$ is the KL-Divergence
+\end{itemize}
+This optimization makes intuitive sense, by minimizing $\hat{Reg}_t(\pi)$ we're exploiting our current knowledge. At the same time minimizing $KL(\mathcal{U}, q^{\mu_s}(a|X_s))$ builds in some exploration, ensuring that our distribution doesn't stray too far from uniform. Note that as $t$ increases the penalty incurred from the second term goes to zero, satisfying our criteria of vanishing exploration in the limit.
+
+This instantiation of the template is the algorithm ILOVETOCONBANDITS. First we'll show that it satisfies property 2, then we'll elaborate on how this optimization is done using coordinate descent to show it satisfies property 1. It should be noted that the 'monster' algorithm which ILOVETOCONBANDITS tames was very similar, but used an elipsoid method to solve the optimization problem. This lead to nice theoretical properties, but had an even more complicated analysis and was computationally infeasible to use as it required something like $O(T^3)$ AMO calls by time $T$. In contrast this method only requires $O(\sqrt{T})$. Now, onto the properties
+
+\subsection{ILOVESMALLREGRET}
+\begin{theorem}
+	The regret incurred by ILOVETOCONBANDITS is, with probability at least $1-\delta$,
+	$$O(\sqrt{k T \log(\frac{T |\Pi|}{\delta})} + k \log(\frac{T |\Pi|}{\delta})$$
+\end{theorem}
+\textit{Very high level sketch}: We assume two claims about OP (which are ensured by the solver)
+\begin{enumerate}
+	\item Small empirical regret,
+	$$\sum_{\pi} q(\pi) \hat{Reg}_t(\pi) \le c k \mu_t $$
+	\item Low variance,
+	$$ \forall \pi \in \Pi: \frac{1}{t} \sum_{s=1}^t \frac{\mu_t}{(1-\mu_t) q(\pi(X) | X) + \mu_t} \le c(k \mu_t +\hat{Reg}_t(\pi))$$
+\end{enumerate}
+For some universal constant $c$ (given in the paper).
+
+Recalling that $Reg(\pi) = V(\pi^*) - V(\pi)$, we introduce the following lemma:
+\begin{lemma}[Key Lemma]
+	$$\forall \pi \in \Pi: Reg(\pi) \le 2\hat{Reg}_t(\pi) + O(K \mu_t)$$
+\end{lemma}
+
+Using this lemma, let's examine the instantaneous regret at time $t$:
+\begin{align*}
+\text{Regret at time t} &= \sum_{\pi \in \Pi} q_t(\pi) Reg(\pi) \\
+&\le \sum_{\pi \in \Pi} q_t(\pi) (2\hat{Reg}_t(\pi) + O(K \mu_t)) \\
+&= 2 \sum_{\pi \in \Pi} q_t(\pi)\hat{Reg}_t(\pi) + q_t(\pi) O(K \mu_t) \\
+&\le O(K \mu_t) && \text{By claim 1}
+\end{align*}
+proving the theorem.
+
+\subsection{ILOVEOPTIMIZINGWITHAMO}
+Now, let's dig into how we actually solve OP. Earlier we claimed that it only takes $\sqrt{T}$ calls to the AMO to solve the OP, but that's less than one per step...how does that work? Two enhancements:
+\begin{enumerate}
+	\item Epochs: $q_t$ is not updated at every step, but only on steps that are perfect squares (2, 4, 9, 16, etc)
+	\item Warm Start: the initial conditions for the optimization are set using the solution to the previous epoch 
+\end{enumerate}
+We solve the OP using coordinate descent:
+\begin{algorithm}
+	\caption{Coordinate descent for OP}
+	\begin{algorithmic}[1]
+		\STATE \textbf{Input}: initial weights for $q$
+		\WHILE{True}
+		\IF{Claim 1 (small empirical regret) violated}
+		\STATE $q \gets c q$ \COMMENT{$0<c<1$ is constantant given in paper}
+		\ELSIF{$\exists \pi$ such that claim 2 (low variance) is violated}
+		\STATE $q(\pi) = q(\pi) + \alpha$ \COMMENT{$\alpha > 0$ is another constant given in paper}
+		\ELSE
+		\STATE Return $q$
+		\ENDIF
+		\ENDWHILE
+	\end{algorithmic}
+\end{algorithm}
+
+If this algorithm terminates, we're all done! But how do we know it will?
+\begin{theorem}
+	The number of loops required to approximately solve OP using our coordinate descent procedure is $\le \frac{\log(\frac{1}{k \mu_t})}{\mu_t}$
+\end{theorem}
+Proof of this theorem was not given in class (we ran out of time). One result of this theorem is that, since the support of $q$ can increase by at most 1 each loop, there will only be at most $\sqrt{T}$ nonzero elements by termination.
+\bibliography{stats710}
+\end{document}
+
+
