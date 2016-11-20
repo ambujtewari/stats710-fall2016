@@ -1,0 +1,179 @@
+\documentclass[11pt]{article}
+\usepackage{url,amsmath,setspace,amssymb,amsthm,fullpage}
+\usepackage{algorithm,algorithmic}
+
+% Scribe template modified from original created by UC Berkeley's EECS department
+
+\newcommand{\heading}[5]{
+   \renewcommand{\thepage}{#1-\arabic{page}}
+   \noindent
+   \begin{center}
+   \framebox[\textwidth]{
+     \begin{minipage}{0.9\textwidth} \onehalfspacing
+       {\bf STATS 710 -- Seq. Dec. Making with mHealth Applications} \hfill #2
+
+       {\centering \Large #5
+
+       }\medskip
+
+       {\it #3 \hfill #4}
+     \end{minipage}
+   }
+   \end{center}
+}
+
+\newcommand{\scribe}[4]{\heading{#1}{#2}{Instructors:
+Susan Murphy and Ambuj Tewari}{Scribe: #4}{Lecture #1: #3}}
+
+\input{macros}
+
+\bibliographystyle{alpha}
+
+\begin{document}
+\scribe{19}{Nov 17, 2016}{PAC(Probably Approximately Correct) learning}{April Cho} 
+
+
+\section{PAC (Probably Approximately Correct) learning}
+
+\begin{itemize}
+	\item PAC learning basic idea: At the end of the "learning" process, we want the ``solution" that should, with high probability, be approximately correct.
+	\item In multi-armed bandits, $\actions = \{0, 1, \cdots k-1\},  \mu_a = \E{R^a}$, and $R^a \in [0, 1]$.
+	For each $a$, we have access to an iid stream $R_1^a, R_2^a, \cdots$. The optimal arm is $a^\star = \argmax_{a\in \actions}\mu_a$, and $\mu^\star = \max_{a \in \actions} \mu_a$.
+\end{itemize}
+
+Algorithm 1 is a general template of the PAC algorithm for MAB \cite{even2002pac}. We need to specify the termination condition and sampling method for it to be a proper algorithm.
+\begin{algorithm}
+	\begin{algorithmic}[1]
+		\STATE At time t :
+		\IF{TERMINATION CONDITION met}
+			\STATE Terminate and output an arm $A'$
+		\ELSE
+			\STATE Sample an arm $A_t$
+			\STATE Receive $R_t=R_t^{A_t}$
+		\ENDIF
+		\end{algorithmic}
+		\caption{PAC learning for Multi-Armed Bandits}
+\end{algorithm}
+
+
+\subsection{Definitions}
+Here are some definitions we need to know for the following theorems and proof. 
+\begin{itemize}
+	\item Arm/action $a$ is \textit{$\epsilon$-optimal} if $\mu_a \geq \mu^\star - \epsilon$
+	\item A learning algorithm is an \textit{($\epsilon$, $\delta$)-PAC algorithm} for MAB if it outputs an $\epsilon$-optimal arm with probability $\geq 1 - \delta$
+	\item \textit{Sample Complexity} of a learning algorithm for MAB = Worst case(over all possible inputs) time steps needed until termination
+\end{itemize}
+
+
+
+\subsection{NAIVE algorithm}
+Sampling each action same amount of time is the most naive way of sampling actions. 
+\begin{algorithm}
+	\begin{algorithmic}[1]
+		\STATE For each $a \in \actions$, sample $a$ a total of $l$ times
+		\STATE Let $\hat \mu_a$ be the sample means corresponding to the K actions
+		\STATE Terminate and output $A' = \argmax_{a\in\actions}\hat\mu_a$
+		\end{algorithmic}
+		\caption{NAIVE algorithm}
+\end{algorithm}
+
+\noindent Sample complexity of NAIVE algorithm is $l \cdot K$ (fixed).
+
+
+\begin{theorem}
+	Naive algorithm with $l = \frac{4}{\epsilon^2}\log(\frac{2K}{\delta})$ is ($\epsilon$, $\delta$)-PAC. Therefore for this choice of $l$, its sample complexity is $O(\frac{K}{\epsilon^2}\log(\frac{K}{\delta}))$.
+\end{theorem}		
+\noindent NOTE : There is a lower bound on sample complexity of $\Omega(\frac{K}{\epsilon^2}\log(\frac{1}{\delta}))$.
+
+
+\begin{proof}
+Let $a$ be some action that is not $\epsilon$-optimal : $\mu_a < \mu^\star - \epsilon$
+	\begin{align*}
+    		\mathbb{P}(A' = a) & \leq \mathbb{P}(\hat\mu_a \geq \hat\mu_{a^\star}) \\
+		& = \mathbb{P}(\hat\mu_a \geq \mu_a + \frac{\epsilon}{2} \text{ or } \hat\mu_{a^\star} \leq \mu^\star - \frac{\epsilon}{2}) \\
+		& \leq \mathbb{P}(\hat\mu_a \geq \mu_a + \frac{\epsilon}{2}) + \mathbb{P}(\hat\mu_{a^\star} \leq \mu^\star - \frac{\epsilon}{2})\\
+		& \leq e^{-(\frac{\epsilon}{2})^2 l} + e^{-(\frac{\epsilon}{2})^2 l} \\
+		& = \frac{\delta}{K} \text{\hspace{1cm}when $l$ = } \frac{4}{\epsilon^2}\log(\frac{2K}{\delta})\\
+	\end{align*}
+	Since we have K actions, $\mathbb{P}(\text{NAIVE outputs a non $\epsilon$-optimal arm}) \leq K \cdot \delta/K = \delta$. Hence with $l = \frac{4}{\epsilon^2}\log(\frac{2K}{\delta})$, NAIVE algorithm is ($\epsilon$, $\delta$)-PAC.
+\end{proof}
+
+
+\subsection{MEDIAN ELIMATION($\epsilon$,$\delta$)}
+
+$\epsilon$ and $\delta$ are the input variables for this algorithm. $S_l$ is a collection of competing arms at $l^{th}$ phase. 
+
+\begin{algorithm}
+	\begin{algorithmic}[1]
+		\STATE Set $S_1 = \actions$
+		\STATE $\epsilon_1 = \frac{\epsilon}{4}$,  $\delta_1 = \frac{\delta}{2}$, and  $l = 1$. 
+		\WHILE {$|S_l| > 1$}
+			\STATE Sample every arm $a \in \states_l$ for $\frac{1}{(\epsilon_l/2)^2}\log(\frac{3}{\delta_l})$ times
+			\STATE Let $\hat\mu_a^l$ denote the sample mean using samples in the $l^{th}$ phase
+			\STATE Find the median of the $|S_l|$ quantities $\mu_a^l =: m_l$
+			\STATE $S_{l+1} = S_l - \{a : \hat\mu_a^l < m_l\}$
+			\STATE $l = l + 1\textit{; } \epsilon_{l + 1} = \frac{3}{4}\epsilon_l \textit{;  } \delta_{l + 1} = \frac{\delta_l}{2}$
+ 		\ENDWHILE
+		\STATE When out of the loop, output the only action remaining in $S_l$
+		\end{algorithmic}
+		\caption{Median Elimination($\epsilon$,$\delta$) algorithm}
+\end{algorithm}
+
+
+\begin{theorem}
+	Median Elimination($\epsilon, \delta$) is ($\epsilon, \delta$)-PAC. Furthermore, its sample complexity is $O(\frac{K}{\epsilon^2}\log(\frac{1}{\delta}))$
+\end{theorem}
+
+A key lemma is that, with high probability, the drop in the optimality of the best arm within the remaining set of arms is not severe in going from one phase to the next.
+
+\begin{lemma}
+	We have $\mathbb{P}(\max_{a\in S_{l} }\ \mu_a \leq \max_{a\in S_{l+1}}\ \mu_a + \epsilon_l) \geq 1 - \delta_l$ \\ 
+\end{lemma}
+\noindent{We will prove this lemma next time.}
+
+
+\begin{proof}[Proof of Theorem 2(assuming Lemma 3 is true)] 
+	\begin{align*}
+		\text{Overall suboptimality of the action in the final set $S_l$}
+		&= \epsilon_1 + \epsilon_2 + \epsilon_3 + \cdots + \epsilon_{\log_2(K)} \\
+		& \leq \sum_{i = 1}^{\infty} \epsilon_i = O(\epsilon) \\
+	\end{align*}
+	
+	Probability that inequality in Lemma 3 fails to hold in some episodes
+	\begin{align*}
+		& \leq \sum_{l = 1}^{\log_2{K}}\delta_l  \\
+		& \leq \sum_{l = 1}^{\infty}\delta_l  = \delta
+	\end{align*}
+	
+	\begin{align*}
+		\text{Sample Complexity} &= \sum_{l = 1}^{\log_2{K}}\frac{n_l \log(\frac{3}{\delta_l})}{(\epsilon_l/2)^2} 
+		\text{ \hspace{1cm} where } n_l = |S_l| = \frac{K}{2^{l+1}} \\
+		& = 4\sum_{l = 1}^{\log_2{K}} \frac{  (\frac{K}{2^{l-1}})\log(\frac{2^l3}{\delta})}{((\frac{3}{4})^{l-1}\frac{\epsilon}{4})^2}\\
+		&= 64\sum_{l=1}^{\log_2{K}} K(\frac{8}{9})^{l-1}(\frac{\log(1/\delta)}{\epsilon^2}+\frac{\log{3}}{\epsilon^2}+l\frac{\log{2}}{\epsilon^2})\\
+		& \leq 64 \frac{K\log(1/\delta)}{\epsilon^2} \sum_{l=1}^{\infty} (\frac{8}{9})^{l-1} (lC' + C)\\
+		& \leq O(\frac{K\log(1/\delta)}{\epsilon^2}).
+	\end{align*}
+\end{proof}
+
+\bibliography{stats710}
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
