@@ -1,0 +1,90 @@
+\documentclass[11pt]{article}
+\usepackage{url,amsmath,setspace,amssymb,amsthm,fullpage}
+\usepackage{algorithm,algorithmic}
+
+% Scribe template modified from original created by UC Berkeley's EECS department
+
+\newcommand{\heading}[5]{
+   \renewcommand{\thepage}{#1-\arabic{page}}
+   \noindent
+   \begin{center}
+   \framebox[\textwidth]{
+     \begin{minipage}{0.9\textwidth} \onehalfspacing
+       {\bf STATS 710 -- Seq. Dec. Making with mHealth Applications} \hfill #2
+
+       {\centering \Large #5
+
+       }\medskip
+
+       {\it #3 \hfill #4}
+     \end{minipage}
+   }
+   \end{center}
+}
+
+\newcommand{\scribe}[4]{\heading{#1}{#2}{Guest Lecturer: Nan Jiang}{Scribe: #4}{Lecture #1: #3}}
+
+\input{macros}
+
+\bibliographystyle{alpha}
+
+\begin{document}
+\scribe{23}{Dec 06, 2016}{Contextual Decision Processes with Low Bellman Rank
+	are PAC-Learnable}{Hyesun Yoo}
+
+\section{Contexual Decision Processes}
+This lecture was given by Nan Jiang and he discussed about his recent paper \cite{jiang2016contextual}. \\
+Let context space $\contexts$, action space $\actions$, horizon H\\
+In each episode,
+
+\[
+\begin{cases}
+x_1 \in \contexts \text{ is drawn, play } a_1 \in \actions\\
+r_1, x_2 \text{ are drawn, play } a_2\\
+\vdots\\
+r_{H-1}, x_H \text{ are drawn, play } a_H\\
+r_H \text{ is drawn. End }\\
+\end{cases}
+\]
+\noindent Policy $\pi:\contexts \to \actions$.\\
+Value $V^{\pi}=\E{\sum_{h=1}^{H}r_h|a_{1:H}\sim \pi}$
+
+\section{Value-based RL with function approximation}
+Given $\mathcal{F} \subseteq \left(  \contexts \times \actions \to [0,1] \right)$ assume $|\mathcal{F}|$= N$<\infty$\\
+We want to identify $f$ $\in \mathcal{F}$ such that
+\begin{itemize}
+	\item $V^{\pi_f}$ is high, where $\pi_{f}: x \mapsto \argmax_{a\in \actions}f(x,a)$
+	\item $f$ obeys a set of Bellman equation (or ``$f$ is valid'' for short): $\mathcal{E}(f,\pi_{f'},h)$=0, $\forall f'\in \mathcal{F}$, $h \in [H]$
+\end{itemize}
+where Bellman Error is
+\begin{align*}
+\mathcal{E}(f,\pi,h):= \E{f(x_h,a_h)-r_h-f(x_{h+1}, a_{h+1})|a_{1:h-1} \sim \pi, a_{h:h+1}\sim \pi_{f}}
+\end{align*}
+Formally, we aim to achieve value $ V_{\mathcal{F}}^{\star}=\sup_{f\in \mathcal{F}:\text{ f is valid}}V^{\pi_{f}}$
+
+\section{Bellman rank}
+Define the Bellman error matrix for each level $h$ as an $N\times N$ matrix, with the $(f', f)$-th entry being $\mathcal{E}(f, \pi_{f'}, h)$. Informally, Bellman rank $M$ is the maximal rank of such matrices over all $h$, and is naturally small for a number of RL settings.
+
+PAC-learning goal: identify $f\in \mathcal{F}$ such that $V^{\pi_f} \ge V_{\mathcal{F}}^\star - \epsilon$ with probablity at least $1-\delta$, using only poly$(M, |\mathcal{A}|, H, \log(N/\delta), 1/\epsilon)$ episodes of data.
+
+\section{Algorithm: OLIVE}
+Here is a simplified version of the algorithm OLIVE. This will be discussed in next lecture.
+
+\begin{enumerate}
+	\item Let $V_f=\E{\max_{a\in \actions}f(x,a)}$
+	\item Let $\mathcal{F}_0=\mathcal{F}$
+	\item For every epoch t=1,2,...
+	\item Pick $f_t=\argmax_{f\in \mathcal{F}_{t-1}} V_f$ and $\pi_t=\pi_{f_t}$.
+	\item If $\sum_{h=1}^{H} \mathcal{E}(f_t,\pi_t,h) \leq \varepsilon$\\
+	Terminate and return $\pi_t$\\
+	End if
+	\item Pick $h_t \in [1, \cdots, H]$ such that $\mathcal{E}({f_t,\pi_t,h_t}) \geq \frac{\varepsilon}{H}$
+	\item Collect data $\{(x_1^{(i)}, a_1^{(i)}, r_1^{(i)}, \cdots, x_{h_t}^{(i)}, a_{h_t}^{(i)},r_{h_t}^{(i)},x_{h_t+1}^{(i)}  )\}_{i=1}^n$
+	\item $\forall f \in \mathcal{F}_{t-1}$, let $\hat{\mathcal{E}}(f, \pi_t, h_t)=\frac{1}{n}\sum_{i=1}^{n}\frac{I(a_{h_t}^{(i)}=\pi_f(x_{h_t}^{(i)}))}{1/|\actions|}\left(f(x_{h_t}^{(i)},a_{h_t}^{(i)})-r_{h_t}^{(i)}-f(x_{h_t+1}^{(i)},\pi_f(x_{h_t+1}^{(i)}))\right)$
+	\item Let $\mathcal{F}_t:=\{ f\in \mathcal{F}_{t-1}: |\hat{\mathcal{E}}(f, \pi_t, h_t)|\leq \phi \}$
+	\item End for
+	\end{enumerate}
+
+\bibliography{stats710}
+
+\end{document}
