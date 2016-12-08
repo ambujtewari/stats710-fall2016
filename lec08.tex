@@ -37,9 +37,9 @@ Susan Murphy and Ambuj Tewari}{Scribe: #4 }{Lecture #1: #3}}
     \item Original paper: Auer et al. \cite{auer2002nonstochastic}
     \item This lecture mainly focuses on chapter 3 of Bubeck and Cesa-Bianchi \cite{bubeck2012regret}
 \end{itemize}
-Until now, we have assumed that reward is given as an i.i.d. sequence for each action. However, we will throw out this assumption, and the nature (adversary) chooses the reward matrix in an arbitrary fashion. In other words, if our MAB problem consists of $K$ arms and $T$ time steps, the nature decides the reward matrix $(r_{a, t})_{a\in\actions, t \in [T]}$, which a player cannot observe. At time $t$, if the learner picks $A_t = a$, then it observes the reward $r_{a, t}$. Note that the learner only observes just one element of $t^{th}$ column. If the entire column is revealed, we call this problem as a full information problem. 
+Until now, we have assumed that reward is given as an i.i.d. sequence for each action. However, we will throw out this assumption, and nature (an adversary) chooses the reward matrix in an arbitrary fashion. In other words, if our MAB problem consists of $K$ arms and $T$ time steps, nature decides the reward matrix $(r_{a, t})_{a\in\actions, t \in [T]}$, which a player cannot observe. At time $t$, if the learner picks $A_t = a$, then it observes the reward $r_{a, t}$. Note that the learner only observes just one element of $t^{th}$ column. If the entire column is revealed, we call this problem as a full information problem. 
 
-We usually assume the reward matrix is bounded, and specifically throughout the lecture, we will assume every element is in $[0, 1]$. Note that unlike stochastic case, we have at most one randomness from the strategy. Thus if the leaner is deterministic, there is no randomness. 
+We usually assume the reward matrix is bounded, and specifically throughout the lecture, we will assume every element is in $[0, 1]$. In the previous MAB we have studied, there was randomness in distribution and potentially randomness in the algorithm. Now, there is no randomness in distribution, and therefore the only source of randomness is the algorithm.  Thus if the leaner is deterministic, there is no randomness. 
 
 We can define regret as a difference from the best row-sum:
 $$
@@ -62,7 +62,7 @@ If $\la$ is deterministic, i.e., $A_t = a_t$ is a fixed function of $\history_t 
 \begin{proof}
 Consider binary case when $K=2$. 
 
-If $a_1=1$, set $r_{1, 1}=0, r_{2, 1}=1$ or set $r_{1, 1}=1, r_{2, 1}=0$ otherwise. 
+If $a_1=1$, set $r_{1, 1}=0, r_{2, 1}=1$. Otherwise, set $r_{1, 1}=1, r_{2, 1}=0$. 
 
 This will determine $a_2$ and again set the reward for $a_2$ equal to 0 and the other reward to be 1. 
 
@@ -76,7 +76,7 @@ $$
 \max(\sum_t r_{1, t}, \sum_t r_{2, t})\geq T/2
 $$
 
-This completes the proof for the binary case. For the general case, construct the matrix in a similar fashion so that our action gets 0 reward while the others have 1. In this way, we can prove the regret is great than $\frac{K-1}{K}T$.
+This completes the proof for the binary case. For the general case, construct the matrix in a similar fashion so that our action gets 0 reward while the others have 1. In this way, we can prove the regret is greater than $\frac{K-1}{K}T$.
 \end{proof}
 
 \subsection{Randomized Algorithm}
@@ -112,7 +112,7 @@ This proof consists of four steps, and this lecture will introduce the first ste
 \textbf{STEP1}
 There are four useful observations:
 \begin{enumerate}
-    \item
+    \item Given $\history_t$, $p_{a,t}$ and $l_{a,t}$ are not random. Only $\ind(a = A_t)$ is random.
     \begin{flalign*}
         \E{\tilde l_{a,t}|\history_t} &= \E{\frac{l_{a,t}}{p_{a,t}}\ind(a=A_t)|\history_t} \\
         &=\sum_{a'\in\actions}\frac{l_{a,t}}{p_{a,t}}\ind(a=a')p_{a',t} \\
@@ -142,4 +142,4 @@ $$
 \end{proof}
 		
 \bibliography{stats710}
-\end{document} 
+\end{document}

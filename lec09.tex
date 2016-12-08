@@ -46,12 +46,12 @@ The algorithm for EXP3 and the beginning of this proof can be found in sections 
 From last lecture, the key idea was to write: 
 
 $$
-p_t^T \tilde l_t = \frac{1}{\eta}[\log p_t^T \exp(-\eta \tilde l_t) + \eta p_t^T \tilde l_t] - \frac{1}{\eta} \log p_t^T \exp(-\eta \tilde l_t)
+p_t^T \tilde l_t = \underbrace{\frac{1}{\eta}[\log p_t^T \exp(-\eta \tilde l_t) + \eta p_t^T \tilde l_t]}_{:=A} - \underbrace{\frac{1}{\eta} \log p_t^T \exp(-\eta \tilde l_t)}_{:=B}
 $$
 
 where every function is calculated component-wise.
 
-The first part of the expression can be bounded by:
+The first part of the expression (A) can be bounded by:
 
 \begin{align*}
 \frac{1}{\eta}[\log p_t^T \exp(-\eta \tilde l_t) + \eta p_t^T \tilde l_t] &\leq \frac{1}{\eta} [p_t^T (\exp(
@@ -59,11 +59,11 @@ The first part of the expression can be bounded by:
 &= \frac{p_t^T}{\eta} [\exp(-\eta \tilde l_t) - \overrightarrow{1} + \eta \tilde l_t] ~~~ (\because p_t^T \overrightarrow{1} = 1) \\
 &\leq \frac{p_t^T}{\eta} \frac{\eta^2 \tilde l_t^2}{2} ~~~ (\because e^{-x} - 1 + x \leq \frac{x^2}{2},\ \forall x \geq 0) \\
 &= \frac{\eta p_t^T \tilde l_t^2}{2} \\
-& = \frac{\eta}{2}\frac{l_{A_t, t}^2}{p_{A_t, t}} ~~~ (\because \text{observation 3}) \\
+& = \frac{\eta}{2}\frac{l_{A_t, t}^2}{p_{A_t, t}} ~~~ (\because \text{observation 3, } p_t^T\tilde{l}_t^2 = l^2_{A_t,t}/p_{A_t,t}) \\
 &\leq \frac{\eta}{2 p_{A_t, t}} ~~~ (\because l_{A_t, t} \leq 1) \\
 \end{align*}
 
-The second part of this expression is equivalent to: 
+The second part of this expression (B) is equivalent to: 
 
 \begin{align*}
 -\frac{1}{\eta} [\log p_t^T \exp (-\eta \tilde l_t)] &= -\frac{1}{\eta} [\log \sum_{a \in \actions} p_{a, t} \exp (-\eta \tilde l_{a,t})] \\
@@ -73,7 +73,7 @@ The second part of this expression is equivalent to:
 &= \Phi_{t-1} - \Phi_{t} \\
 \end{align*}
 
-where $\Phi_t := \frac{1}{\eta} \log[\frac{1}{K} \sum_{a \in \actions} \exp(-\eta \tilde L_{a,t})], \tilde L_{a,0} := 0, \Phi_0 :=0$.  This will result in a telescoping sum.
+where $\Phi_t := \frac{1}{\eta} \log[\frac{1}{K} \sum_{a \in \actions} \exp(-\eta \tilde L_{a,t})], \tilde L_{a,0} := 0, \Phi_0 :=0$.  This will result in a telescoping sum. $\Phi_t$ is called a potential function.
 
 From the formulation for regret with respect to some fixed action $b \in \actions$ found in the last lecture and the work above:
 
@@ -130,5 +130,3 @@ The contextual bandit flow of information is modified from the multi-armed bandi
 
 \bibliography{stats710}
 \end{document}
-
-
