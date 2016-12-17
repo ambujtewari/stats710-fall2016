@@ -52,7 +52,7 @@ Thus, $\la$ is an input to the regret formulation as it selects the action that 
 
 Almost all algorithms begin with a circuit of sampling each arm once, resulting in $a_1, \ldots a_K$ being predetermined, where $K$ represents the total number of arms.  That way, we ensure that each arm is sampled at least once.
 
-The optimal regret of an algorithm in the distribution-free setting with bounded (or, more generally, subgaussian) rewards scales as $O(\sqrt{T})$.  However, in the case of algorithms that separate exploration from exploitation, the rate is worse: $O(T^{2/3})$.  For some formal lower bounds that hold for any algorithm that separates the exploration and exploitation see \cite{dani2006robbing} (Section 6) and \cite{garivier2016explore}. Therefore, the minimax regret would not be achieved through separation policy, where the exploration and exploitation phases are separated.
+The optimal regret of an algorithm in the distribution-free setting with bounded (or, more generally, subgaussian) rewards scales as $O(\sqrt{T})$.  However, in the case of algorithms that separate exploration from exploitation the rate is worse: $O(T^{2/3})$.  For some formal lower bounds that hold for any algorithm that separates the exploration and exploitation see \cite{dani2006robbing} (Section 6) and \cite{garivier2016explore}. Therefore, the minimax regret would not be achieved through separation policy, where the exploration and exploitation phases are separated.
 
 The Robbins algorithm would still work if the rewards were not iid. All we need is the WLLN to hold for rewards. For example, we can allow for various mixing conditions that guarantee asymptotic independence, so this conditions would still permit a consistency proof to go through.
 
@@ -109,9 +109,9 @@ The coin flips used to decide whether the learning algorithm explores by taking 
 \subsection{Regret bound}
 
 \begin{theorem}
-Suppose $D_a$ has support in $[0, 1]$.  Define $\epsilon_t = \min\{1, \frac{cK}{d^2t}\}$, where $K$ is the number of actions possible, $t$ is the time, $c > 5$, and $0 \le d \le min_{a:\mu_a < \mu_\star} \Delta_a$   Run $\epsilon_t$-greedy algorithm under these constraints, and fix a suboptimal arm $a \in \actions$.  Then the probability that $\epsilon_t$-greedy chooses $a$ at $t$, for $t \ge \frac{cK}{d}$, is at most $\frac{c}{d^2t}+o(\frac{1}{t})$.  That is to say, jointly over the algorithm and nature for every $t$ large enough, 
+Suppose $D_a$ has support in $[0, 1], \forall a \in \actions$.  Define $\epsilon_t = \min\{1, \frac{cK}{d^2t}\}$, where $K$ is the number of actions possible, $t$ is the time, $c > 5$, and $0 \le d \le min_{a:\mu_a < \mu_\star} \Delta_a$   Run $\epsilon_t$-greedy algorithm under these constraints, and fix a suboptimal arm $a \in \actions$.  Then the probability that $\epsilon_t$-greedy chooses $a$ at $t$, for $t \ge \frac{cK}{d}$, is at most $\frac{c}{d^2t}+o(\frac{1}{t})$.  That is to say, jointly over the algorithm and nature for every $t$ large enough, 
 \[
-\ \mathbb{P}(A_t = a) \le \frac{c}{d^2t} + o(\frac{1}{t})
+    \ \mathbb{P}(A_t = a) \le \frac{c}{d^2t} + o \left(\frac{1}{t} \right)
 \]
 \end{theorem}
 
@@ -141,13 +141,13 @@ Let $X_1, X_2, \ldots$ be random variables with range $[0, 1]$ and $\mathbb{E}(X
 Our random variables in this case could be iid, although this is not a requirement for this fact.
 
 \subsection{Fact 2: Bernstein concentration inequality}
-As before, let $X_1, X_2, \ldots$ be random variables with range $[0,1]$ and $\sum_{i=1}^t \mathrm{Var}(X_i \mid X_{1:i-1}) = \sigma^2$.  Then 
+As before, let $X_1, X_2, \ldots$ be random variables with range $[0,1]$ and $\sum_{i=1}^t \mathrm{Var}(X_i \mid X_{1:i-1}) = \sigma_t^2$.  Then 
 \[
-\ \forall \delta>0, \prob{\sum_{i=1}^t X_i - \E{\sum_{i=1}^t X_i} \ge \delta} \le \exp(\frac{-\delta^2/2}{\sigma_t^2+ \delta/2})
+\ \forall \delta>0, \prob{\sum_{i=1}^t X_i - \E{\sum_{i=1}^t X_i} \ge \delta} \le \exp \left( \frac{-\delta^2/2}{\sigma_t^2+ \delta/2} \right)
 \]
 and 
 \[
-\ \forall \delta >0, \prob{ \E{\sum_{i=1}^t X_i} - \sum_{i=1}^t X_i \ge \delta} \le \exp(\frac{-\delta^2/2}{\sigma_t^2+ \delta/2})
+\ \forall \delta >0, \prob{ \E{\sum_{i=1}^t X_i} - \sum_{i=1}^t X_i \ge \delta} \le \exp \left( \frac{-\delta^2/2}{\sigma_t^2+ \delta/2} \right)
 \]
 
 The random variables we will apply Bernstein's inequality to will be independent but not identically distributed.
