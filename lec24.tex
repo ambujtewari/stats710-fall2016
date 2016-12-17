@@ -1,0 +1,156 @@
+\documentclass[11pt]{article}
+\usepackage{url,amsmath,setspace,amssymb,amsthm,fullpage}
+\usepackage{algorithm,algorithmic}
+
+% Scribe template modified from original created by UC Berkeley's EECS department
+
+\newcommand{\heading}[5]{
+   \renewcommand{\thepage}{#1-\arabic{page}}
+   \noindent
+   \begin{center}
+   \framebox[\textwidth]{
+     \begin{minipage}{0.9\textwidth} \onehalfspacing
+       {\bf STATS 710 -- Seq. Dec. Making with mHealth Applications} \hfill #2
+
+       {\centering \Large #5
+
+       }\medskip
+
+       {\it #3 \hfill #4}
+     \end{minipage}
+   }
+   \end{center}
+}
+
+\newcommand{\scribe}[4]{\heading{#1}{#2}{Instructors:
+Susan Murphy and Ambuj Tewari}{Scribe: #4}{Lecture #1: #3}}
+
+
+\input{macros}
+
+\bibliographystyle{alpha}
+
+\begin{document}
+\scribe{24}{Dec 8, 2016}{The OLIVE Algorithm}{Huajie Qian}
+
+\section{Recap: \textbf{O}ptimism \textbf{L}ed \textbf{I}terative \textbf{V}alue-function \textbf{E}limination (OLIVE)}
+\subsection{Notation and Assumption}
+\begin{align*}
+&K:=\vert \mathcal A\vert,N:=\vert \mathcal F\vert,M:=\text{Bellman rank}\\
+&V_f:=\mathbb E_{x_1}[\max_{a\in \actions}f(x_1,a)]\\
+&[H]:=\{1,2,\ldots,H\}
+\end{align*}
+We assume that the reward $r_h\geq 0$ for all $h$ and that $\sum_{h=1}^Hr_h\leq 1$ almost surely. We also assume that the Bellman matrix admits the following factorization. For all $h\in[H]$, there exist $\xi_h,\nu_h:\mathcal F\rightarrow \mathbb R^M$ such that $\mathcal E(f,\pi_{f'},h)=\nu_h(f')^T\xi_h(f)$. Moreover, $\Vert\nu_h(f')\Vert_2\leq \Psi,\Vert\xi_h(f)\Vert_2\leq \Phi$ for all $h,f,f'$ and denote $\zeta=\Psi\Phi$.
+
+\subsection{OLIVE}
+\begin{algorithm}
+\caption{OLIVE}\label{olive}
+\begin{algorithmic}[1]
+\STATE Estimate the predicted value $\hat{V}_f=\frac{1}{n_{est}}\sum_{i=1}^{n_{est}}\max_{a\in \actions}f(x_1^i,a)$, where $x_1^i,i=1,\ldots,n_{est}$ are $n_{est}$ copies of the initial context\label{step1}
+\STATE Let $\mathcal F_0=\mathcal F$
+\FOR{t=1,2,\ldots}
+\STATE Pick $f_t=\argmax_{f\in \mathcal F_{t-1}}\hat{V}_f$ and $\pi_t=\pi_{f_t}$
+\STATE Estimate the Bellman error $\sum_{h=1}^H\tilde{\mathcal{E}}(f_t,\pi_t,h)$ by sampling $n_{eval}$ episodes $\{x_1^i,a_1^i,r_1^i,\ldots,x_H^i,a_H^i,r_H^i\},i=1,\ldots,n_{eval}$ with policy $\pi_t$\label{step2}
+\IF{$\sum_{h=1}^H\tilde{\mathcal{E}}(f_t,\pi_t,h)\leq \epsilon$}
+\STATE Terminate and return $\pi_t$
+\ENDIF
+\STATE Pick $h_t\in[H]$ such that $\tilde{\mathcal{E}}(f_t,\pi_t,h_t)\geq \frac{\epsilon}{H}$\label{residual}
+\STATE Estimate the row associated with the roll-in policy $\pi_t$ of the Bellman error matrix using importance sampling, i.e.~collect $n$ episodes $\{x_1^i,a_1^i,r_1^i,\ldots,x_H^i,a_H^i,r_H^i\},i=1,\ldots,n$ with $a_h^i=\pi_t(x_h^i)$ for $h\neq h_t$ and $a_{h_t}^i$ uniformly drawn from $\actions$, and compute for each $f\in\mathcal F_{t-1}$
+\begin{equation*}
+\hat{\mathcal{E}}(f,\pi_t,h_t)=\frac{1}{n}\sum_{i=1}^n\frac{I(a_{h_t}^i=\pi_f(x_{h_t}^i))}{1/K}\left(f(x_{h_t}^i,a_{h_t}^i)-r_{h_t}^i-f(x_{h_t+1}^i,\pi_f(x_{h_t+1}^i))\right)
+\end{equation*}
+\label{step3}
+\STATE Update $\mathcal F_t=\{f\in\mathcal F_{t-1}:\vert \hat{\mathcal{E}}(f,\pi_t,h_t) \vert \leq \phi\}$\label{updateF}
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+
+
+\section{Theoretical Guarantee}
+The detail of the following analysis can be found in \cite{jiang2016contextual}.
+\subsection{$\epsilon$-suboptimality of the output}
+
+\begin{lemma}\label{lemma1}
+Let $V_f=\mathbb E_{x_1} [\max_{a\in\actions}f(x_1,a)]$. Then $V_f-V^{\pi_f}=\sum_{h=1}^H\mathcal E(f,\pi_f,h)$.
+\end{lemma}
+\textit{Proof: }
+\begin{align*}
+&\sum_{h=1}^H\mathcal E(f,\pi_f,h)\\
+=&\sum_{h=1}^H\mathbb E[f(x_h,a_h)-r_h-f(x_{h+1},a_{h+1})\vert a_{1:h+1}\sim \pi_f]\\
+=&\sum_{h=1}^H\mathbb E[f(x_h,a_h)-r_h-f(x_{h+1},a_{h+1})\vert a_{1:H}\sim \pi_f]\\
+=&\mathbb E[\sum_{h=1}^H(f(x_h,a_h)-r_h-f(x_{h+1},a_{h+1}))\vert a_{1:H}\sim \pi_f]\\
+=&\mathbb E[f(x_1,a_1)-\sum_{h=1}^Hr_h\vert a_{1:H}\sim \pi_f]\\
+=&V_f-V^{\pi_f}
+\end{align*}
+where the second last equality comes from the default $f(x_{H+1},a)\equiv 0$.\qed
+
+\begin{proposition}
+Let $f=\argmax_{f\in\mathcal F_{t-1}}V_f$. If $V_{f}-V^{\pi_{f}}\leq \epsilon$ and $f^*\in \mathcal F_{t-1}$, then $V^{\pi_f}\geq V_{\mathcal F}^*-\epsilon$.
+\end{proposition}
+\textit{Proof: }By Lemma \ref{lemma1}
+\begin{align*}
+V^{\pi_f}=&V_{f}-\sum_{h=1}^H\mathcal E(f,\pi_f,h)\\
+\geq&V_{f}-\epsilon\\
+\geq&V_{f^*}-\epsilon=V_{\mathcal F}^*-\epsilon
+\end{align*}
+where the last equality is because $f^*$ has zero Bellman error.\qed
+
+\subsection{Bound the Number of Epochs}
+\begin{lemma}\label{ellipsoid}
+Let $V\subset $ be a closed and bounded subset of $\mathbb R^d$ and $p\in \mathbf R^d$. Let $B$ be any ellipsoid that is centered at the origin and encloses $V$. Suppose $\exists \nu\in V$ such that $\vert p^T\nu\vert \geq\kappa>0$ and $B^+$ is the minimum volume ellipsoid that encloses $\{\nu\in B:\vert p^T\nu \vert\leq \gamma\}$. If $\frac{\gamma}{\kappa}\leq \frac{1}{3\sqrt{d}}$, then
+\begin{equation*}
+\frac{vol(B^+)}{vol(B)}\leq \frac{3}{5}.
+\end{equation*}
+
+\end{lemma}
+
+\begin{lemma}\label{key}
+(The key lemma) Suppose $\vert \hat{\mathcal E}(f,\pi_t,h_t)-\mathcal E(f,\pi_t,h_t) \vert\leq \phi$ throughout the algorithm, which implies that $f^*\in \mathcal F_t$ for all $t$. Further assume that for all $h\in[H]$, if whenever $h_t=h$ we have
+\begin{equation*}
+\vert\mathcal E(f_t,\pi_t,h_t)\vert\geq 6\sqrt{M}\phi:=\frac{\epsilon}{H}.
+\end{equation*}
+Then the number of epochs such that $h_t=h$ is bounded by $M\log \frac{\zeta}{2\phi}/\log \frac{5}{3}$.
+\end{lemma}
+\textit{Proof: }First let's define the notations. Let $I_1,I_2,\ldots,I_T$ be the epoch such that $h_t=h$. Define $I_0=0$. Let $p_{\tau}=\nu_h(f_{I_{\tau}})$ for $\tau=1,2,\ldots,T$. Let $U(\mathcal F_{T_{\tau}})=\{\xi_h(f):f\in\mathcal F_{T_{\tau}}\}$ for $\tau=0,1,\ldots,T$. Let $V_0=\{\nu:\Vert\nu\Vert_2\leq \Phi\}$, and $V_{\tau}=\{\nu\in V_{\tau-1}:\vert p_{\tau}^T\nu\vert\leq 2\phi\}$. Accordingly, let $B_{\tau},\tau=0,1,\ldots,T$ be the minimum volume ellipsoid that encloses $V_{\tau}$. Note that since $V_{\tau}$ is centered at the origin, so is $B_{\tau}$.
+
+Second we show that the volume of $B_{\tau}$ shrinks exponentially. Note that due to the first condition of this lemma and the criterion \ref{updateF} of the algorithm, $U(\mathcal F_{T_{\tau}})\subset V_{\tau}$. We apply Lemma \ref{ellipsoid} with $p=p_{\tau},\gamma=2\phi,\kappa=6\sqrt{M}\phi,V=V_{\tau-1},B=B_{\tau-1}$. Note that the criterion \ref{residual} implies that $p_{\tau}^T\xi_h(f_{I_{\tau}})\geq \frac{\epsilon}{H}=6\sqrt{M}\phi=\kappa$, where $\xi_h(f_{\tau})\in U(\mathcal F_{T_{\tau-1}})\subset V_{\tau-1}$. And it is clear that $\frac{\gamma}{\kappa}=\frac{2\phi}{6\sqrt{M}\phi}=\frac{1}{3\sqrt{M}}$, thus Lemma \ref{ellipsoid} is applicable and we have
+\begin{equation*}
+\frac{vol(B_{\tau-1}^+)}{vol(B_{\tau-1})}\leq \frac{3}{5}.
+\end{equation*}
+Compared with $B_{\tau-1}^+$, $B_{\tau}$ is the minimum volume enclosing ellipsoid of a smaller region, thus
+\begin{equation*}
+\frac{vol(B_{\tau})}{vol(B_{\tau-1})}\leq\frac{vol(B_{\tau-1}^+)}{vol(B_{\tau-1})}\leq \frac{3}{5}.
+\end{equation*}
+
+Since it is assumed that $\Vert \nu_h(f')\Vert_2\leq \Psi$ for all $f'\in \mathcal F$, it is easy to check that the ball of radius $\frac{2\phi}{\Psi}$ centered at the origin is always within $B_{\tau}$ and it is trivial that $B_{0}=V_0$. This gives an upper bound of $T$, the number of epochs such that $h_t=h$
+\begin{equation*}
+\left(\frac{3}{5}\right)^T\Phi^M\geq\left(\frac{2\phi}{\Psi}\right)^M,
+\end{equation*}
+that is
+\begin{equation*}
+T\leq M\log \frac{\zeta}{2\phi}/\log\frac{5}{3}.
+\end{equation*}
+This completes the proof.\qed
+\subsection{Sampling Complexity}
+\begin{theorem}
+To find a policy $\hat{\pi}$ such that $V^{\hat{\pi}}\geq V^*_{\mathcal F}-\epsilon$ with probability at least $1-\delta$, the number of episodes of data required by OLIVE algorithm is
+\begin{equation*}
+O\left(\frac{M^2H^3K}{\epsilon^2}\log \frac{N}{\delta}\right),
+\end{equation*}
+\end{theorem}
+\textit{Sketch of Proof: }This sketch of proof is not rigorous in the sense that the constants that appear with $N,K,H,M,\delta,\epsilon$ are not carefully tuned.  See \cite{jiang2016contextual} for detailed proof. The proof consists of first using Lemma \ref{key} to split the total failure probability $\delta$ into step \ref{step1},\ref{step2},\ref{step3} of the algorithm, computing the number of samples required to succeed in each of these steps, and finally summing up to get the total sampling requirement. The number of required samples in each step can be established using standard concentration inequalities.
+\begin{description}
+\item[1.]In step \ref{step1}, to estimate $V_f$ up to error $\epsilon$ for all $f$, it is enough to set $n_{est}=O\left(\frac{1}{\epsilon^2}\log \frac{N}{\delta}\right)$
+\item[2.]In step \ref{step2}, to estimate $\mathcal{E}(f_t,\pi_t,h)$ up to error $\frac{\epsilon}{H}$ for all $h$, it is enough to set $n_{eval}=O\left(\frac{H^2}{\epsilon^2}\log \frac{H}{\delta}\right)$
+\item[3.]In step \ref{step3}, to estimate $\mathcal{E}(f,\pi_t,h_t)$ up to error $\phi=\frac{\epsilon}{6H\sqrt{M}}$ for all $f$, it is enough to set $n=O\left(\frac{K}{\phi^2}\log \frac{N}{\delta}\right)=O\left(\frac{MH^2K}{\epsilon^2}\log \frac{N}{\delta}\right)$
+\end{description}
+Now due to Lemma \ref{key} the algorithm terminates in $O\left(HM\right)$ epochs, thus the total sampling complexity is $O\left(\frac{M^2H^3K}{\epsilon^2}\log \frac{N}{\delta}\right)$.\qed
+
+
+
+
+
+
+\bibliography{stats710}
+\end{document}
