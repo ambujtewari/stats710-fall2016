@@ -1,0 +1,111 @@
+\documentclass[11pt]{article}
+\usepackage{url,amsmath,setspace,amssymb,amsthm,fullpage}
+\usepackage{algorithm,algorithmic}
+
+% Scribe template modified from original created by UC Berkeley's EECS department
+
+\newtheorem{theorem2}{Theorem}[section]
+
+\newcommand{\heading}[5]{
+   \renewcommand{\thepage}{#1-\arabic{page}}
+   \noindent
+   \begin{center}
+   \framebox[\textwidth]{
+     \begin{minipage}{0.9\textwidth} \onehalfspacing
+       {\bf STATS 710 -- Seq. Dec. Making with mHealth Applications} \hfill #2
+
+       {\centering \Large #5
+
+       }\medskip
+
+       {\it #3 \hfill #4}
+     \end{minipage}
+   }
+   \end{center}
+}
+
+\newcommand{\scribe}[4]{\heading{#1}{#2}{Instructors:
+Susan Murphy and Ambuj Tewari}{Scribe: #4}{Note#1: #3}}
+
+\input{macros}
+
+\bibliographystyle{alpha}
+
+\begin{document}
+\scribe{}{}{Risk-Averse Bandits}{Brandon Oselio}
+
+\section{Introduction}
+This brief summary will cover the recent work regarding risk-aware bandits. Most bandit algorithm literature is focused on mean regret $\mathbb{E}[\mathcal{R}_T]$, and its corresponding finite-sample and asymptotic behavior. In many applications, however, this may not be a rich enough measure of performance. For example, consider the problem of treatment allocation in clinical trials; while some treatment policy may work well on average, it might also have a large variability, which could make certain patients worse off. This type of outcome is obviously unacceptable. Therefore, we must search for ways to control this type of error.
+
+We will explore two main concepts in this paper. First, we see that \cite{audibert2009exploration} provides concentration bounds of regret for both the traditional UCB1 and a variant UCBV. We discuss the implication of these results and some strategies for risk-averse users of UCB algorithms in general. The second topic takes a different route to control risk by changing the definition of traditional regret. A popular replacement for regret is the ``mean-variance'' model proposed by \cite{markowitz1952portfolio}. %We also briefly review \cite{zimin2014generalized} which consider other forms of regret and their usefulness.
+
+\section{Concentration Analysis of UCB1}
+We recall the UCB1 algorithm originally studied by \cite{auer2002finite}:
+
+\begin{enumerate}
+\item $\forall a \in \mathcal{A}$, compute $\bar R_t^a$ and $N_t(a)$
+\item Pick action $a$ to maximize $\bar R_t^a + \sqrt{\frac{\rho \log t}{N_t(a)}}$
+\end{enumerate}
+
+Note that the conventional choice of $\rho$ is 2. The choice of $\rho$ controls the amount of exploration that occurs. This is important for the concentration bound that follows. Qualitatively, we can think of a larger $\rho$ as shielding the user from unlucky initializations by imposing more exploration, at the cost of a greater rate for expected regret.
+
+Before presenting the results, we note that these are with respect to pseudo-regret:
+
+\begin{equation}
+\tilde{\mathcal{R}}_T(\mathcal{L}, (D_{a \in \mathcal{A}}) = \sum_{a \in \mathcal{A}} N_T(a) \Delta_a,
+\end{equation}
+
+where $\Delta_a = \mu_{*} - \mu_a$. Note that $\mathbb{E}[\tilde{\mathcal{R}}_T] = \mathbb{E}[\mathcal{R}_T]$. Remark 2 of \cite{audibert2009exploration} discusses the similarity of the expectation and concentration bounds for pseudo-regret and regret. For simplicity, we will discuss pseudo-regret only for the rest of this section, and assume that a similar type of bound holds for regret.
+
+\begin{theorem}[\cite{audibert2009exploration}, Theorem 7]
+Assume that the distributions of rewards for all arms have support on $[0, b]$, and let $\rho > 1$. Then we have:
+\begin{equation}
+\mathbb{E}[\tilde{\mathcal{R}}_T(\mathcal{L}_{UCB1}, (D_a)_{a \in \mathcal{A}})] \le \sum_{a: \Delta_a > 0} \left[ \frac{4b^2}{\Delta_a} \rho \log (n) + \Delta_a \left( \frac{3}{2} + \frac{1}{2(\rho - 1)} \right)\right] .
+\end{equation}
+\end{theorem}
+
+\begin{theorem}[\cite{audibert2009exploration}, Theorem 8]
+Assume that $\rho > 1/2$. Let $v_a = (2b/ \Delta_a)^2,~r_0 = \sum_a \Delta_a (1 + \rho v_a \log T)$. Then, for any $x \ge 1$, we have:
+\begin{equation}
+\mathbb{P}(\tilde{\mathcal{R}}_T > r_0x) \le \sum_{a: \Delta_a > 0} \left\{ T^{-2 \rho x + 1} + \frac{((1 + \rho v_a \log T)x)^{-2 \rho + 1}}{2 \rho - 1}\right\}
+\end{equation}
+\end{theorem}
+
+These two theorems characterize the trade-off between expected regret and concentration of regret. As $\rho$ increases, we see that the tail bound decreases, but our proven expected regret bound increases at a rate of $\log(n)$. A variant of UCB which is slightly more aggressive (less exploration) and utilizes the empirical variance, is also analyzed in \cite{audibert2009exploration}, but we omit this due to space.
+
+
+
+
+\section{Risk-Averse Measures of Regret}
+
+This section is focused on defining alternative notions of regret that incorporate a quantitative measure of risk so that we may directly minimize it. First, we discuss an approach that follows the mean-variance model, originally proposed by \cite{markowitz1952portfolio}. This is the procedure followed by \cite{sani2012risk}, and later developed further by \cite{vakili2016risk}. We first define the mean-variance of an arm as:
+
+\begin{equation}
+\mathrm{MV}_a = \sigma_a^2 - \rho \mu_a,~\rho > 0
+\end{equation}
+where $\mu_a, \sigma^2_a$ is the mean and variance of the distribution $D_a$, respectively. We also define the empirical mean and variance in the usual way, and further define the following:
+
+\begin{align}
+\hat \mu_{t}(\mathcal{A}) = \frac{1}{t} \sum_{i=1}^{t} R_t, \quad \hat \sigma^2_t(\mathcal{A}) = \frac{1}{t} \sum_{i=1}^{t}(R_i - \hat \mu_{t}(\mathcal{A}))^2,
+\end{align}
+where $R_t$ is the observed reward at timestep $t$. We can then define the following notion of regret:
+
+\begin{equation}
+\mathcal{R}_T(\mathcal{L}, (D_{a \in \mathcal{A}}) = \widehat{\mathrm{MV}}_T(\mathcal{A}) - \widehat{\mathrm{MV}}_{i^*, n}
+\end{equation}
+
+We note that as $\rho \leftarrow \infty$, we restore our standard setting of bandit regret. As $\rho \leftarrow 0$, we attempt to pick the arm with the least variance, i.e., variance minimization. using $\rho$, we are once again trading off between minimizing variability, and maximizing the mean utility using this reward function. 
+
+\cite{sani2012risk} Then gives two algorithms. One is a UCB based algorithm, which acheives an expected regret bound on the order of $O(\log^2T/T)$. However, the worst case analysis of regret in this case is constant (see Remark 2), which implies that on certain ``hard problems'', the algorithm does not do very well. They then introduce an algorithm whose worst case algorithm is better, but explicitly splits apart the exploration and exploitation phases. Therefore, the bound on regret is $O(T^{-1/3})$. Note that this measure of regret implicitly divides by the epoch $T$ - therefore, to compare with bounds that we consider in the class, we should multiply by $T$.
+
+We conclude this section by mentioning the work of \cite{zimin2014generalized}, which characterizes the types of regret functions that allow for sublinear regret. This includes both the standard bandit regret, as well as the MV regret described above. This is relevant as one might wish to consider a more complicated regret measure that depends on the mean and variance of the arms.
+
+\section{Conclusion}
+
+In this short exposition, we covered a few ideas for risk-averse bandits. The first approach is to calculate concentration bounds on the standard regret, with which we can quantitatively give a bound on the risk of unlucky runs. We also consider a non-standard regret function that takes into account the variance of the arms. For future work, it would be interesting to calculate concentration bounds on these non-standard regret functions, and compare them with the traditional regret concentration bounds.
+
+\bibliography{stats710}
+
+\end{document}
+
+

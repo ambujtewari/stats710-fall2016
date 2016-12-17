@@ -1,0 +1,138 @@
+\documentclass[11pt]{article}
+\usepackage{url,amsmath,setspace,amssymb,amsthm,fullpage}
+\usepackage{algorithm,algorithmic}
+
+% Scribe template modified from original created by UC Berkeley's EECS department
+
+\newcommand{\heading}[5]{
+   \renewcommand{\thepage}{#1-\arabic{page}}
+   \noindent
+   \begin{center}
+   \framebox[\textwidth]{
+     \begin{minipage}{0.9\textwidth} \onehalfspacing
+       {\bf STATS 710 -- Sequential Decision Making with mHealth Applications} \hfill #2
+
+       {\centering \Large #5
+
+       }\medskip
+
+       {\it #3 \hfill #4}
+     \end{minipage}
+   }
+   \end{center}
+}
+
+\newcommand{\scribe}[4]{\heading{#1}{#2}{Instructors:
+Susan Murphy and Ambuj Tewari}{Scribe: #4}{Note: #3}}
+
+\input{macros}
+
+\bibliographystyle{alpha}
+
+\begin{document}
+\scribe{1}{}{A Reinforcement Learning System to Encourage Physical Activity in Diabetes Patients}{Anurag Beniwal}
+\section{Introduction}
+The aim of the study is to assess effectiveness of automatically-tailored personalized feedback in increasing adherence in diabetic patients(only type 2 diabetes)  to a personal physical activity regimen recommended by a diabetes specialist.The secondary objective is to improve glycemic control.
+
+\section{Design of study}
+It was a 26 weeks long study on 27 sedentary diabetes type 2 patients with smart phone and a Wifi connection (with a pedometer) and a personal plan for physical activity.
+\begin{flushleft}\textbf{Inclusion criterion :} HbA1c greater than 6.5\% , sedentary lifestyle. People with other diseases that prohibit exercise were excluded from the study
+the patients were randomly assigned to the control and the test(personalized) groups.
+\end{flushleft}
+
+\section{Learning algorithm}
+The authors use a contextual bandit type of an algorithm.
+\subsection{Actions:}
+A message is sent daily and a summary message is sent every week.
+\begin{itemize}
+\item  \textbf{Daily messages}
+\end{itemize}
+\begin{enumerate}
+\item  \textbf{Negative Feedback}: "You need to exercise to reach your activity goals. Please remember to exercise tomorrow."
+\item  \textbf{Positive feedback relative to self}:"You have so far achieved N\% of your weekly activity goal. Your exercise level is in accordance with your plan . Keep up the good work."
+\item  \textbf{Positive feedback relative to others:}"You have so far achieved N\% of your weekly activity goal . you are exercising more than the average person in your group. Keep up the good work."
+\item  \textbf{No Message}
+\end{enumerate}
+\begin{itemize}
+\item  \textbf{Weekly summary messages}
+
+On most weeks the weekly summary message is "Please remember to exercise this week to reach your exercise goals". When patients achieve a significant exercise level and not more than once per 3 weeks they could receive the following messages.
+\end{itemize}
+\begin{enumerate}
+\item  \textbf{Maximal Increase:} Over the past week you increased your activity more than any previous week.
+\item  \textbf{Significant increase :}over the past week you increased your activity more than any previous week
+\item  \textbf{Maximal Social :} "Last week you increased your physical activity more than any other participant in the experiment.
+\item  \textbf{Significant social :}"Last week you increased your activity more than any other participant in the experiment.
+\end{enumerate}
+\subsection{Initialization of algorithm:}
+\begin{enumerate}
+\item  On 20\% of days no message was sent 
+\item  A uniform random number between 0 and 1 is drawn .
+\item  
+\begin{algorithmic}
+\IF{the number is > expected fraction of weekly activity at that day} \STATE the user will get the negative feedback message.
+\ELSE
+\STATE one of the positive messages is sent with equal probability
+\ENDIF
+\end{algorithmic}
+\end{enumerate}
+\subsection{Features/Elements of context vector \textbf{$x_{i,t}$:}}
+\begin{enumerate}
+\item  \textbf{Activity Attributes :}
+\begin{itemize}
+\item  Number of minutes of activity in the last day
+\item  Cumulative number of minutes of activity this week
+\item  Fraction of activity goal
+\item  Fraction versus expected as this point in the week
+\end{itemize}
+\item  \textbf{Demographics:} Age, Gender
+\item  \textbf{Feedback attributes:} Number of days since each feedback message was sent
+\item  \textbf{Interaction Features:} Interaction features were used . Example: Interaction between activity performed so far and time since each feedback message was sent , fraction of activity performed so far and time since each feedback message was given, Daily activity a day before feedback and activity performed so far ,Daily activity a day before feedback and  time since each feedback was given etc.
+\end{enumerate}
+\subsection{Learning:}
+Let $x_{i,t}$   be the context vector for person i at time t and let $y_{i,t}$ denote the change in activity from day t to day t+1.
+A linear regression model is trained on all $x_{i,t},y_{i,t}$ pairs to predict $y_{i,t}$ from $x_{i,t}$
+
+\begin{equation}
+  Y_{i,t}=X_{i,t}\hat\beta+\epsilon
+\end{equation}
+
+\begin{flushleft}The learning algorithm is run everyday and the most up-to-date model is used for prediction
+
+To predict appropriate action to be taken from the predicted  response $\hat y_{i,t}$ Boltzmann sampling is performed with 
+$T_{Boltzmann}$ = 5 and the action is probabilistically selected with probability for selection of $k^{th}$ arm/message
+\end{flushleft}
+\begin{equation}
+    p(y_{i,t,k}) = \frac{exp(y_{i,t,k})}{\sum_{k}exp(y_{i,t,k})}
+\end{equation}
+
+\begin{flushleft}The use of boltzmann function induces exploration by itself as an action/message with predicted probability less than that of best arm could also be selected
+\end{flushleft}
+
+\textbf{Note 1:} Their was single model for all users and data from all users was used to update  the model 
+
+\textbf{Note2:} Inverse probability weighting was not used and could be potentially helpful to reduce the bias in estimates
+
+\section{Results and Insights}
+\begin{itemize}
+\item  \textbf{Effect of Different Messages over time} :
+It was found that inclusion of feature "time since each feedback was sent " provides historical context to the policy, allowing feedback to be dependent between days . Results showed that the time dependent feedback was more useful than the time independent one . For example, even though on average negative feedback reduced activity but it could still induce positive change if given before a positive feedback.
+\item  \textbf{Variability in patient response}:
+K means clustering of users was done and response for each message type was measured for each of the clusters . It was found that different clusters exhibited different change in activity levels as a response to messages . It was found that females responded less to messages in general as compared to males whereas response did not differ significantly with age. This shows that demographic variables play an important part in personalizing actions.
+\item  \textbf{Learning process over time}:
+It was found that learning algorithm improved over time and the coefficients became more stable over time. The $R^2$ value improved over time finally settling to 0.43 . There were few fluctuations in $R^2$ due to extreme weather events , which makes it extremely important to include external factors like weather forecast in features.
+\item  \textbf{Effectiveness of the algorithm}:
+A linear regression was fit to assess the change in activity levels for each users separately and it was found that the average slope and standard error of slope for the treatment group were higher and lower respectively than both control group (No messages sent) and for the group to which messages were sent using the initial policy.This means that the algorithm lead to increase in activity levels in general.The rate of walking also improved for the treatment group
+
+
+\end{itemize}
+
+This note is a summary of  \cite{hochberg2016reinforcement}
+
+\bibliography{stats710} 
+
+
+\end{document}
+
+
+
