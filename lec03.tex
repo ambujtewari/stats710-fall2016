@@ -65,7 +65,7 @@ Susan Murphy and Ambuj Tewari}{Scribe: #4}{Lecture #1: #3}}
 
 \noindent \textit{Proof.} Consider a $k$-armed bandit and constants $c$ and $d$ as described in Theorem~\ref{bound}. Set $\epsilon_t = \min \left \{ 1, \frac{ck}{d^2 t} \right \}$, so for $t \geq \frac{ck}{d^2}$, $\epsilon_t = \frac{ck}{d^2 t}$. Set $x_0 = \frac{1}{2} \left( \frac{1}{k} \sum_{i=1}^t \epsilon_i \right)$. The value inside the parentheses corresponds to the expected number of times we will pull an arm due to exploration.\\
 
-\noindent Now, we introduce the first inequality on the road to the final bound. Note that this must be an inequality because of the possibility of tie-breaking among multiple $a$'s or the possibility that multiple $a$'s majorize the empirical mean of $a*$ with different empirical means.
+\noindent Now, we introduce the first inequality on the road to the final bound. Note that this must be an inequality because of the possibility of tie-breaking among multiple $a$'s or the possibility that multiple $a$'s majorize the empirical mean of $a^*$ with different empirical means.
 
 \begin{align}
 	\prob{A_t = a} \leq \frac{\epsilon_t}{k} + \left( 1 - \epsilon_t \right) \prob{\bar{R}_{N_{t-1}\left( a \right)}^a \geq \bar{R}_{N_{t-1}^*}^*} \textnormal{,} \label{line1}
@@ -86,7 +86,7 @@ Susan Murphy and Ambuj Tewari}{Scribe: #4}{Lecture #1: #3}}
 &\leq\  \sum_{i=1}^{\lfloor x_0 \rfloor} \prob{N_t \left( a \right) = i\ |\ \bar{R}_i^a \geq \mu_a + \frac{\Delta_a}{2}} + \sum_{i = \lfloor x_0 \rfloor + 1}^t e^{\frac{-\Delta_a i}{2}} \textnormal{,} \label{line6}
 \end{align}
 
-\noindent where line~\ref{line5} follows from applying Hoeffding-Azuma to the second factor in each term of the sum on the RHS, made possibly by the fact that $i$ is not random, and line~\ref{line6} follows from the observation that the factors we removed are upper-bounded by $1$. The choice of which factor to keep in each partition of the two sums comes from the fact that the exponential factor is larger when $i$ is small and smaller when $i$ is large, i.e. we are keeping the smallest possible of the two factors to find a tighter bound. Now, we show a bound on the terms in the first sum for $i \leq \lfloor x_0 \rfloor$.
+\noindent where line~\ref{line5} follows from applying Hoeffding-Azuma to the second factor in each term of the sum on the RHS, made possible by the fact that $i$ is not random, and line~\ref{line6} follows from the observation that the factors we removed are upper-bounded by $1$. The choice of which factor to keep in each partition of the two sums comes from the fact that the exponential factor is larger when $i$ is small and smaller when $i$ is large, i.e. we are keeping the smallest possible of the two factors to find a tighter bound. Now, we show a bound on the terms in the first sum for $i \leq \lfloor x_0 \rfloor$.
 
 \begin{align}
 	\prob{N_t \left( a \right) = i\ |\ \bar{R}_i^a \geq \mu_a + \frac{\Delta_a}{2}}\ &\leq\ \prob{N_t \left( a \right) \leq x_0\ |\ \bar{R}_i^a \geq \mu_a + \frac{\Delta_a}{2}} \label{line7}\\
@@ -105,7 +105,7 @@ Susan Murphy and Ambuj Tewari}{Scribe: #4}{Lecture #1: #3}}
 \begin{align}
 	I_{i,a}^{\textnormal{explore}}\ =\ \left \{ \begin{array}{l r}
 	1 & \textnormal{if } a \textnormal{ pulled at time } i \textnormal{ for exploration}\\
-	0 & \textnormal{o.w.}
+	0 & \textnormal{otherwise}
 	\end{array} \right. \textnormal{.}
 \end{align} 
 
