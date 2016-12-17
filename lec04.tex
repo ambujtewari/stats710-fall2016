@@ -34,14 +34,13 @@ Susan Murphy and Ambuj Tewari}{Scribe: #4}{Lecture #1: #3}}
 \scribe{4}{Sep 15, 2016}{Proof the finite-time upper bound of expected regret for Upper Confidence Bound (UCB)}{Tim NeCamp}
 \section{Clarifications from Lecture 3}
 
-Where do we use the bound $0 \le d \le min_{a:\mu_a < \mu_\star} \Delta_a$?
+Where do we use the bound $0 \le d \le \min_{a:\mu_a < \mu_\star}
+\Delta_a$? In our proof, we had
 
-In our proof, we had:
-
-$\prob{A_t = a} \leq \frac{\epsilon_t}{K} + 2 x_0 e^{-x_0/5} + \frac{4}{\Delta_a^2}e^{-\Delta_a^2 x_0 / 2} 
-\leq \frac{c}{d^2t} + \frac{2c}{d^2} \log{ (\frac{(t-1)d^2e}{2cK})} (\frac{2cK}{(t-1)d^2e})^{d^2 c/5}
-+ \frac{4}{d^2}(\frac{2cK}{(t-1)d^2e})^{c/2}$.
-
+\begin{align*}\prob{A_t = a} &\leq \frac{\epsilon_t}{K} + 2 x_0 e^{-x_0/5} +
+\frac{4}{\Delta_a^2}e^{-\Delta_a^2 \lfloor x_0 \rfloor / 2} \\
+                             &\leq \frac{c}{d^2t} + \frac{2c}{d^2} \log{ \left(\frac{(t-1)d^2e}{2cK}\right)} \left(\frac{2cK}{(t-1)d^2e}\right)^{c/(5d^2)}+ \frac{4}{d^2}\left(\frac{2cK}{(t-1)d^2e}\right)^{c/2}.
+\end{align*}
 The first inequality required no bound on the gap, however to obtain the second inequality we utilized two things:
 \begin{itemize}
 \item To eliminate $x_0$ we use: $x_0  := \frac{\sum_1^t \epsilon_i }{2K} \geq \frac{c}{d^2}\log (\frac{t d^2 e}{2cK}) $
@@ -50,127 +49,153 @@ The first inequality required no bound on the gap, however to obtain the second 
 
 \section{UCB algorithm and finite time regret bound}
 
-\subsubsection{UCB Algorithm}
-
 The algorithm and its analysis are both from~\cite{auer2002finite}.
-
-At time $t \leq K$, do:
-
-Pick action $a$ when $t = a$.\\
-\\
-\noindent At time $t > K$, do:
-\begin{enumerate}
-\item $\forall a \in A$, compute $\bar R^a_t$ and $N_t(a)$. 
-\item Pick action $a$ to maximize:
-$\bar R_t^a + \sqrt{\frac{2\log(t)}{N_t(a)}} $
-\end{enumerate}
-
-\subsubsection{Finite time expected regret bound for UCB}
+\begin{algorithm}[H]
+	\begin{algorithmic}[1]
+          \FOR{$t\le K$}
+          \STATE Pick action $a$ when $t=a$.
+          \ENDFOR
+          \FOR{$t  > K$}
+          \STATE For each $a \in \actions$, compute $\bar R^a_t$ and
+          $N_t(a)$. 
+          \STATE Pick action $a = \argmax \bar R_t^a + \sqrt{\frac{2\log(t)}{N_t(a)}}  $.
+          \ENDFOR
+		\end{algorithmic}
+		\caption{UCB}
+		\label{algo:UCB}
+\end{algorithm}
 
 \begin{theorem}
 Assume that all distributions ($D_a, \forall a$) have support in $[0,1]$. Then, under the UCB algorithm:
 
-$\regret_T(\la_{UCB}, (D_a)_{a \in \actions}) \leq \sum\limits_{a: \mu_a < \mu_*} \frac{8\log T}{\Delta_a} + \ (1 + \frac{\pi^2}{3})(\sum\limits_{a: a \in \actions} \Delta_a)$
+$\regret_T(\la_{UCB}, (D_a)_{a \in \actions}) \leq \sum\limits_{a: \mu_a < \mu_*} \frac{8\log T}{\Delta_a} + \ (1 + \frac{\pi^2}{3})\left(\sum_{a \in \actions} \Delta_a\right)$
 
 \end{theorem}
 
 
-\section{Intuition in Theorem and Proof}
+\section{Questions}
 
-\subsection{Why is it called 'upper confidence" bound?}
+\subsection{Why is it called ``upper confidence bound''?}
 
-We have optimism in the face of uncertainty.  We can think of a confidence interval for $\mu_a$ as $(\bar R_t^a - \sqrt{\frac{2\log(t)}{N_t(a)}} , \bar R_t^a + \sqrt{\frac{2\log(t)}{N_t(a)}} )$.  We  assume that $\mu_a$ takes the value of the upper value (optimism)  of it's confidence interval, and pick an action accordingly.
+We have optimism in the face of uncertainty.  We can think of a
+confidence interval for $\mu_a$ as $\bar R_t^a \pm \sqrt{\frac{2\log(t)}{N_t(a)}}$.  We  assume that $\mu_a$ takes the value of the upper value (optimism)  of it's confidence interval, and pick an action accordingly.
 
-\subsection{What if distributions have support outside of $[0,1]$?}
+\subsection{What if the reward distributions have support outside of $[0,1]$?}
 
-Similar to $\epsilon$-greedy, we really only need sub-gaussian distributions.  That way we are still able to use a concentration inequality.  The expected regret bound will obviously slightly change.
+As with $\epsilon$-greedy, we really only need sub-Gaussian
+distributions to use a concentration inequality.  The expected regret
+bound would of course change if we use sub-Gaussian distributions.
 
 \section{Proof strategy}
 
-For the $\epsilon$-greedy algorithm, we proceeded by bounding the probability of selecting a sub-optimal action at time T.  For this proof, we will obtain the result by instead bound $\E{N_T(a)}$.  Specifically we will obtain:
+For the $\epsilon$-greedy algorithm, we bounded the probability of
+selecting a suboptimal action at time $T$.  For this proof, we will obtain the result by instead bound $\E{N_T(a)}$.  Specifically we will obtain:
 
 $\E{N_T(a)} \leq \frac{8 \log T}{\Delta_a^2} + 1 + \frac{\pi^2}{3}$.
 
 \section{Proof of theorem}
 
-\begin{proof} Let $c_{t,n} := \sqrt{\frac{2\log t}{n}}$.  For arbitrary positive integer $l$ (we will choose it's value later), at time $T$, and for $a$ s.t. $\Delta_a > 0$, we have:
-
-$N_T(a) = 1 + \sum\limits^T_{t = K + 1} \ind (A_t = a)$
-
-$\leq l + \sum\limits^T_{t = K + 1} \ind (A_t = a \wedge N_{t-1}(a) \geq l)$
-
-$\leq l + \sum\limits^T_{t = K + 1} \ind ([\bar R^*_{N_{t-1}^*} + c_{t-1,N_{t-1}^*} \leq \bar R^a_{N_{t-1}(a)} + c_{t-1,N_{t-1}(a)}] \wedge [N_{t-1}(a) \geq l]) $*
-
-(*{\scriptsize You may want to use a concentration inequality here but, the inequality cannot be applied for a random time, $N_{t-1}(a)$})
-
-$\leq l +  \sum\limits^T_{t = K + 1} \ind( \exists \  1 \leq n \leq t-1, l \leq m \leq t-1 \text{ such that } \bar R^*_{n} + c_{t-1,n} \leq \bar R^a_{m} + c_{t-1,m}   ) $
-
-$ \leq l +  \sum\limits^T_{t = K + 1}  \sum\limits^{t-1}_{n = 1}  \sum\limits^{t-1}_{m = l} \ind (\bar R^*_{n} + c_{t-1,n} \leq \bar R^a_{m} + c_{t-1,m}  )$
-
-$ \leq l +  \sum\limits^T_{t = 1}  \sum\limits^{t}_{n = 1}  \sum\limits^{t}_{m = l} \ind (\bar R^*_{n} + c_{t,n} \leq \bar R^a_{m} + c_{t,m}  )$ 
-
-Thus, $N_T(a)  \leq l +  \sum\limits^T_{t = 1}  \sum\limits^{t}_{n = 1}  \sum\limits^{t}_{m = l} \ind (\bar R^*_{n} + c_{t,n} \leq \bar R^a_{m} + c_{t,m} )$ \ \ \ \ \ \ \ \ \  \ \ \ \ \  {\bf{(1)}}
-\\
-\\
+Let $c_{t,n} := \sqrt{\frac{2\log t}{n}}$.  For arbitrary positive integer $l$ (we will choose its value later), at time $T$, and for $a$ s.t. $\Delta_a > 0$, we have
+\begin{align*}
+N_T(a) &= 1 + \sum\limits^T_{t = K + 1} \ind (A_t = a)\\
+&\leq l + \sum\limits^T_{t = K + 1} \ind \left(\left\{A_t = a\right\} \cap \left\{N_{t-1}(a) \geq l\right\}\right)\\
+&\leq l + \sum\limits^T_{t = K + 1} \ind\left(\left\{\bar
+  R^*_{N_{t-1}^*} + c_{t-1,N_{t-1}^*} \leq \bar R^a_{N_{t-1}(a)} +
+  c_{t-1,N_{t-1}(a)} \right\} \cap \left\{N_{t-1}(a) \geq l\right\}\right).
+\end{align*}
+You may want to use a concentration inequality at this point, but the
+inequality cannot be applied to a random time,
+$N_{t-1}(a)$. Continuing, we have 
+\begin{align*}
+N_T(a) &\leq l +  \sum\limits^T_{t = K + 1} \ind( \exists \  1 \leq n \leq t-1, l \leq m \leq t-1 \text{ such that } \bar R^*_{n} + c_{t-1,n} \leq \bar R^a_{m} + c_{t-1,m}   )\\
+  &\leq l +  \sum\limits^T_{t = K + 1}  \sum\limits^{t-1}_{n = 1}  \sum\limits^{t-1}_{m = l} \ind (\bar R^*_{n} + c_{t-1,n} \leq \bar R^a_{m} + c_{t-1,m}  )\\
+  &\leq l +  \sum\limits^T_{t = 1}  \sum\limits^{t}_{n = 1}  \sum\limits^{t}_{m = l} \ind (\bar R^*_{n} + c_{t,n} \leq \bar R^a_{m} + c_{t,m}  ).
+\end{align*}
+Thus,
+\begin{align}
+  \label{eq:1}
+  N_T(a)  \leq l +  \sum\limits^T_{t = 1}  \sum\limits^{t}_{n = 1}  \sum\limits^{t}_{m = l} \ind (\bar R^*_{n} + c_{t,n} \leq \bar R^a_{m} + c_{t,m} ).
+\end{align}
 
 \begin{lemma}\label{lem}
-Let E = $\{ \bar R^*_{n} + c_{t,n} \leq \bar R^a_{m} + c_{t,m} \}$ (from last sum above), F = $\{ \bar R^*_{n} \leq \mu_* - c_{t,n} \}$,\\ G = $\{ \bar R^a_{m} \geq \mu_a + c_{t,m} \}$, H = $\{ \mu_* < \mu_a + 2c_{t,m} \}$.  Then E $\subset $ (F $\cup$ G $\cup$ H):
+Let E = $\{ \bar R^*_{n} + c_{t,n} \leq \bar R^a_{m} + c_{t,m} \}$ (from last sum above), F = $\{ \bar R^*_{n} \leq \mu_* - c_{t,n} \}$,\\ G = $\{ \bar R^a_{m} \geq \mu_a + c_{t,m} \}$, H = $\{ \mu_* < \mu_a + 2c_{t,m} \}$.  Then E $\subset $ (F $\cup$ G $\cup$ H).
 \end{lemma}
 
-
-
 \begin{proof} Assume $\neg $ F $\cap \  \neg$ G $\cap \  \neg$ H then:
+  \begin{align*}
+ \bar R^*_{n} &> \mu_* - c_{t,n}\hspace{18pt}\text{(since } F\text{ is false)}\\
+ &\geq   \mu_a + 2c_{t,m} - c_{t,n} 	\hspace{18pt} \text{(since } H
+    \text{ is false)}\\
+ &\geq   \bar R^a_{m} - c_{t,m} + 2c_{t,m} - c_{t,n} 	\hspace{18pt}
+    \text{(since } G\text{ is false )}\\
+ &=  \bar R^a_{m} + c_{t,m} - c_{t,n}  \hspace{18pt} \text{(algebra)}
+  \end{align*}
 
-$ \bar R^*_{n} > \mu_* - c_{t,n}$  (from $\neg $ F)
+So $\bar R^*_{n} + c_{t,n} > \bar R^a_{m} + c_{t,m}$, which shows that ($\neg $ F $\cap \  \neg$ G $\cap \  \neg$ H) $ \subset \neg $ E.\end{proof} 
 
-$ \geq   \mu_a + 2c_{t,m} - c_{t,n} $	(from $\neg $ H)
-
-$ \geq   \bar R^a_{m} - c_{t,m} + 2c_{t,m} - c_{t,n} $	(from $\neg $ G)
-
-$ =  \bar R^a_{m} + c_{t,m} - c_{t,n} $ (from algebra).
-
-So $\bar R^*_{n} + c_{t,n} > \bar R^a_{m} + c_{t,m}$, which shows that ($\neg $ F $\cap \  \neg$ G $\cap \  \neg$ H) $ \subset \neg $ E. \end{proof}
-
-Note that $H$ is non-random, so we choose $l$ to make H false. Specifically, set $l = \Big \lceil \frac{8 \log T}{\Delta_a^2} \Big \rceil $.  Under this setting $H$ is false because:
-
-$\mu_* - \mu_a - 2c_{t,m} = \mu_* - \mu_a - 2 \sqrt{\frac{2\log t}{m}} \geq  \mu_* - \mu_a - 2 \sqrt{\frac{2\log t}{l}} \geq  \mu_* - \mu_a - 2 \sqrt{\frac{2\log T}{l}}  \geq \mu_* - \mu_a - \Delta_a = 0 $.\\
-\\
-
-Thus, with $l = \Big \lceil \frac{8logT}{\Delta_a^2} \Big \rceil$, from {\bf(1)}, we obtain:
-
-$\E{N_T(a) }  \leq l +  \sum\limits^T_{t = 1}  \sum\limits^{t}_{n = 1}  \sum\limits^{t}_{m = l} \E{\ind (\bar R^*_{n} + c_{t,n} \leq \bar R^a_{m} + c_{t,m}  )}$
-$= l +  \sum\limits^T_{t = 1}  \sum\limits^{t}_{n = 1}  \sum\limits^{t}_{m = l} \prob{\bar R^*_{n} + c_{t,n} \leq \bar R^a_{m} + c_{t,m}  }$
-
-$\leq  l +  \sum\limits^T_{t = 1}  \sum\limits^{t}_{n = 1}  \sum\limits^{t}_{m = l} \Big[ \prob{\bar R^*_{n} \leq \mu_* - c_{t,n} } + \prob{\bar R^a_{m} \geq \mu_a + c_{t,m} }  + \prob{ \mu_* < \mu_a + 2c_{t,m}  }\Big] $ \ \ {\small by Lemma \ref{lem}}
-
-$=  l +  \sum\limits^T_{t = 1}  \sum\limits^{t}_{n = 1}  \sum\limits^{t}_{m = l} \Big[ \prob{\bar R^*_{n} \leq \mu_* - c_{t,n} } + \prob{\bar R^a_{m} \geq \mu_a + c_{t,m} }  \Big] $ \ \ \ \ {H has probability 0}
-
-$\leq  l +  \sum\limits^T_{t = 1}  \sum\limits^{t}_{n = 1}  \sum\limits^{t}_{m = l} \Big[ e^{-2nc^2_{t,n}} + e^{-2mc^2_{t,m}}   \Big] $ \ \ \ \ {\small Hoeffding-Azuma}
-
-$\leq  l +  \sum\limits^T_{t = 1}  \sum\limits^{t}_{n = 1}  \sum\limits^{t}_{m = l} \Big[ \frac{1}{t^4} + \frac{1}{t^4}   \Big] $  \ \ \ \ \ {\small definition of $c_{t,n}$}
-
-$\leq l + \sum\limits^T_{t = 1} \frac{2t^2}{t^4}$
-
-$\leq l + \sum\limits^\infty_{t = 1} \frac{2}{t^2}$
-
-$= l + \frac{\pi^2}{3}$ \ \ \ \ \  \ \ {\small because $\sum\limits^\infty_{t = 1} \frac{1}{t^2} = \frac{\pi^2}{6}$}
-
-$\leq \frac{8 \log T}{\Delta_a^2} + 1 + \frac{\pi^2}{3}$  \ \ \ \  \ \ {\small using $l = \Big \lceil \frac{8logT}{\Delta_a^2} \Big \rceil $} \\
-
-Thus, our regret at time T is:
-
-$\regret_T(\la, (D_a)_{a \in \actions}) =  \sum\limits_{a: a \in \actions} \Delta_a \E{N_T(a)} \leq $
-$\sum\limits_{a: a \in \actions} \Delta_a(\frac{8 \log T}{\Delta_a^2} + 1 + \frac{\pi^2}{3}) $
-
-$ = \sum\limits_{a: a \in \actions} \frac{8 \log T}{\Delta_a} + \ (1 + \frac{\pi^2}{3})(\sum\limits_{a: a \in \actions} \Delta_a)$  \end{proof}
+Note that $H$ is non-random, so we choose $l$ to make H false. Specifically, set $l = \Big \lceil \frac{8 \log T}{\Delta_a^2} \Big \rceil $.  Then $H$ is false because
+\begin{align*}
+\mu_* - \mu_a - 2c_{t,m} &= \mu_* - \mu_a - 2 \sqrt{\frac{2\log t}{m}}
+                           \geq  \mu_* - \mu_a - 2 \sqrt{\frac{2\log
+                           t}{l}}\\
+  &\geq  \mu_* - \mu_a - 2 \sqrt{\frac{2\log T}{l}}  \geq \mu_* -
+    \mu_a - \Delta_a = 0.
+\end{align*}
+Thus, with $l = \Big \lceil \frac{8logT}{\Delta_a^2} \Big \rceil$, from \eqref{eq:1}, we obtain
+\begin{align*}
+  \E{N_T(a) }  &\leq l +  \sum\limits^T_{t = 1}  \sum\limits^{t}_{n =
+                 1}  \sum\limits^{t}_{m = l} \E{\ind (\bar R^*_{n} +
+                 c_{t,n} \leq \bar R^a_{m} + c_{t,m}  )}= l +
+                 \sum\limits^T_{t = 1}  \sum\limits^{t}_{n = 1}
+                 \sum\limits^{t}_{m = l} \prob{\bar R^*_{n} +
+                 c_{t,n}\leq \bar R^a_{m} + c_{t,m}  }.
+\end{align*}
+Applying Lemma \ref{lem}, we have
+\begin{align*}
+\E{N_T(a)}&\leq  l +  \sum\limits^T_{t = 1}  \sum\limits^{t}_{n = 1}
+  \sum\limits^{t}_{m = l} \left[ \prob{\bar R^*_{n} \leq \mu_* - c_{t,n} } + \prob{\bar R^a_{m} \geq \mu_a + c_{t,m}}  + \prob{ \mu_* < \mu_a + 2c_{t,m}  }\right] \\
+&=  l +  \sum\limits^T_{t = 1}  \sum\limits^{t}_{n = 1} \sum\limits^{t}_{m = l} \left[ \prob{\bar R^*_{n} \leq \mu_* -
+                                                     c_{t,n} } +
+                                                     \prob{\bar
+                                                     R^a_{m} \geq
+                                                     \mu_a + c_{t,m} }
+                                                     \right] \hspace{18pt}(H \text{
+  has probability 0})\\
+ &\leq  l +  \sum\limits^T_{t = 1}  \sum\limits^{t}_{n = 1}  \sum\limits^{t}_{m = l} \left[ e^{-2nc^2_{t,n}} + e^{-2mc^2_{t,m}}   \right]  \hspace{18pt}\text{(Hoeffding-Azuma)}\\
+ &\leq  l +  \sum\limits^T_{t = 1}  \sum\limits^{t}_{n = 1}  \sum\limits^{t}_{m = l} \left[ \frac{1}{t^4} + \frac{1}{t^4}   \right]   \hspace{18pt}(\text{definition of }c_{t,n})\\
+ &\leq l + \sum\limits^T_{t = 1} \frac{2t^2}{t^4}\\
+ &\leq l + \sum\limits^\infty_{t = 1} \frac{2}{t^2}\\
+ &= l + \frac{\pi^2}{3} 
+\end{align*}
+because $\sum\limits^\infty_{t = 1} \frac{1}{t^2} =
+\frac{\pi^2}{6}$. Now substitute $l=\Big \lceil \frac{8\log
+  T}{\Delta_a^2} \Big \rceil$ to get
+\begin{align*}
+\E{N_T(a)} &\leq \frac{8 \log T}{\Delta_a^2} + 1 + \frac{\pi^2}{3}.
+\end{align*}
+Thus, our regret at time $T$ is
+\begin{align*}
+\regret_T(\la, (D_a)_{a \in \actions}) &=  \sum\limits_{a \in
+                                         \actions} \Delta_a \E{N_T(a)}
+  \\
+  &\leq 
+\sum\limits_{a \in \actions} \Delta_a\left(\frac{8 \log T}{\Delta_a^2} +
+    1 + \frac{\pi^2}{3}\right) \\
+                                       &= \sum\limits_{a \in \actions}
+                                         \frac{8 \log T}{\Delta_a} + \left(1 +
+                                         \frac{\pi^2}{3}\right)\left(\sum\limits_{a \in \actions} \Delta_a\right).
+\end{align*}
 
 \section{Discussion on only having concern for expected regret}
 
-There is some concern about only focusing only on the expected regret, especially in a mobile health setting. For example, though, on average, our algorithm performs well (i.e. the expected regret is small) what if the variance of the regret is large.  This might mean that it is not unlikely that there will be a few people for which the regret is extremely large.  This large regret for those few people may be inexcusable/unethical, especially in a health setting.
-
-
-
+We discussed concerns about only focusing on the expected regret,
+especially in a mobile health setting. For example, even if our
+algorithms have small expected regret, the variance of the regret
+could be large. Then it is not unlikely that there will be a few
+people for whom the regret is extremely large. This might be unethical
+in medical applications.
 
 \bibliography{stats710}
+
 \end{document}
 
