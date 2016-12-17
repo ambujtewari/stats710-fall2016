@@ -33,35 +33,59 @@ Susan Murphy and Ambuj Tewari}{Scribe: #4 }{Lecture #1: #3}}
 \scribe{5}{Sep 20, 2016}{Distribution Independent Bounds and \\Thompson Sampling with Beta Priors and Bernoulli Rewards}{Hyesun Yoo}
 \section{Small detour into distribution-independent bounds}
 \subsection{Upper bound}
-We want to know what happens when gap $\Delta_a$ goes to zero. 
-Suppose $\E{N_T(a)} \leq c\frac{\log T}{\Delta_a^2}$. It seems like as $\Delta_a$ goes to zero, bound would blow up. However, below we derive distribution-independent bounds that don't depend on $\Delta_a$. For any threshold $\delta>0$,\\
+We want to know what happens when the gap $\Delta_a$ goes to zero. 
+Suppose $\E{N_T(a)} \leq c\frac{\log T}{\Delta_a^2}$. It seems like as
+$\Delta_a \to 0$, this bound would blow up. However, we
+can derive distribution-independent bounds that do not depend on $\Delta_a$. For any threshold $\delta>0$,\\
 \begin{align*}
 \text{expected regret} &= \sum_{a} \Delta_a \E{N_T(a)}\\
 &= \sum_{a: \Delta_a \leq \delta} \Delta_a  \E{N_T(a)} + \sum_{a: \Delta_a > \delta} \Delta_a \E{N_T(a)}\\
 &\leq \delta \cdot \E{\sum_{a: \Delta_a \leq \delta} N_T(a)} + \sum_{a: \Delta_a > \delta} \Delta_a  c\frac{\log T}{\Delta_a^2}\\
-&\leq \delta T + \frac{1}{\delta}K c \log{T}\\
-\intertext{We don't have $\delta$ in our algorithm so we can tune it. If we tune $\delta$ as $\sqrt{\frac{cK\log{T}}{T}}$, which makes both terms equal, and plug in, then we would get}
-&=2\sqrt{cKT\log{T}}
+&\leq \delta T + \frac{1}{\delta}K c \log{T}
+\end{align*}
+We don't have $\delta$ in our algorithm so we can tune it. If we set
+$\delta = \sqrt{\frac{cK\log{T}}{T}}$, which makes both terms equal,
+and plug in, then we would get
+\begin{align*}
+  \text{expected regret} &\le 2\sqrt{cKT\log{T}}.
 \end{align*}
 
 \subsection{Lower bound}
 \begin{theorem}  
-	Fix any learning algorithm, K and T. Then, there exists MAB problem with Bernoulli such that expected regret $\geq c'\sqrt{KT}$ for some universal constant c$'$.
+	Fix any learning algorithm, K and T. Then, there exists a MAB
+        problem with Bernoulli rewards such that the expected regret
+        is at least $c'\sqrt{KT}$ for some universal constant c$'$.
 \end{theorem}
 
 \begin{proof}
-\textbf{(Proof is informal)}.\\ With n iid samples, we cannot estimate the mean to an accuracy better than $\frac{1}{\sqrt{n}}$. There has to be an arm that's only played not more than $\frac{T}{K}$ times.\\
-$\Rightarrow$ It'll be difficult to distinguish the quality of this arm from any other one whose mean is within $\frac{1}{\sqrt{T/K}}$.\\
-
-\noindent  Think about $K$-armed bandit problem. Let's say there are $K-1$ Bernoulli(1/2) arms and one Bernoulli($\frac{1}{2}+\sqrt{\frac{K}{T}}$) arm. You can see how lower bound works here. The learning 
-algorithm will not be able to figure out reliably which arm is optimal and will suffer regret $T \times \sqrt{\frac{K}{T}} = \sqrt{TK}$.
+\textbf{(informal)}. With $n$ iid samples, we cannot estimate the mean
+to an accuracy better than $\frac{1}{\sqrt{n}}$. Since there must be
+an arm played at most $\frac{T}{K}$ times, it will be difficult to
+distinguish the quality of this arm from any other one whose mean is
+within $\frac{1}{\sqrt{T/K}}$. For example, consider a $K$-armed
+bandit problem. Suppose there are $K-1$ Bernoulli($1/2$) arms and one
+Bernoulli($\frac{1}{2}+\sqrt{\frac{K}{T}}$) arm. You can see how the lower
+bound works here. The learning 
+algorithm will not be able to figure out which arm is optimal and will suffer regret $T \times \sqrt{\frac{K}{T}} = \sqrt{TK}$.
 \end{proof}
-\noindent Actual proof is much longer than our hand waving sketch here. But the above discussion does contain some of the key ideas behind the proof. Proof of theorem can be found in Auer et al.'s paper \cite{auer2002nonstochastic} (see the theorem on p. 13 and its proof on pp. 31-33)\\
-There was a discussion on lower bound by Lai and Robbins \cite{lai1985asymptotically} whether they used idea of hypothesis testing. Also, there was discussion on the use of KL divergence. If you want to control how random quantities associated with the learning algorithm behave under a change of measure, KL divergence is  a good tool for that.
+ The actual proof is much longer than the proof sketch given
+here. The proof of this theorem can be found in
+\cite{auer2002nonstochastic} (see the theorem on p. 13 and its proof
+on pp. 31-33). We also discussed the lower bound in \cite{lai1985asymptotically} where they used idea of hypothesis testing. Also, there was discussion on the use of KL divergence. If you want to control how random quantities associated with the learning algorithm behave under a change of measure, KL divergence is  a good tool for that.
 
 \section{Thompson sampling}
-\subsection{Thompson sampling algorithm}
-Beta distribution is useful for Bernoulli rewards because if prior is beta $Beta(\alpha, \beta)$ distribution, then after observing Bernoulli trial, posterior distribution is also $Beta(\alpha+1, \beta)$ or $Beta(\alpha, \beta+1)$. (i.e. pdf of beta: $f(x,\alpha, \beta)$ = $\frac{\Gamma(\alpha+\beta)}{\Gamma(\alpha)\Gamma(\beta)}$$x^{\alpha-1}(1-x)^{\beta-1}$.) So in this algorithm, you start with uniform prior for each arm but you will get beta posterior distribution for each arm as you get $S_a$ and $F_a$ for each arm. Algorithm 2 is general version, where rewards($\tilde{R}_t$) are generated from unknown distribution with support [0,1], of algorithm 1. \\
+\subsection{Algorithms}
+The beta distribution is useful for Bernoulli rewards because, in a
+Bayesian framework, if the prior is $\text{Beta}(\alpha,\beta)$, then
+after a single Bernoulli trial, the posterior is either
+$\text{Beta}(\alpha+1,\beta)$ or $\text{Beta}(\alpha, \beta+1)$.
+% (i.e. pdf of beta: $f(x,\alpha, \beta)$ =
+% $\frac{\Gamma(\alpha+\beta)}{\Gamma(\alpha)\Gamma(\beta)}$$x^{\alpha-1}(1-x)^{\beta-1}$.) 
+Thompson sampling (with Bernoulli rewards) keeps track of the number of
+``successes'', $S_a$, and ``failures'', $F_a$, for each arm and
+updates a beta distribution for the selected arm in each round. Algorithm 2 is
+a general version of Algorithm 1 in which the rewards are generated
+from unknown distributions with support $[0,1]$.
 \begin{algorithm}
 	\begin{algorithmic}[1]
 		\STATE Using beta distribution as prior.
@@ -88,30 +112,41 @@ Beta distribution is useful for Bernoulli rewards because if prior is beta $Beta
 	\end{algorithmic}
 	\caption{Thompson Sampling for General Stochastic Bandits}
 \end{algorithm}
-
+Comments:
 \begin{itemize}
-	\item In fact, $S_a$ needs another index like $S_{a, t}$ because it depends on time. But notation $S_a$ is fine in this algorithms.
-	\item For exploration, UCB does it using explicit formula and TS seems to do it using how posterior distribution is spread out. The search for unifying principles behind UCB and TS algorithms continues. See, e.g., the work of Russo and Van Roy \cite{russo2014learning}. 
-	\item As you get more samples, posterior distributions for suboptimal arms will be eventually get separated from those for the optimal arm.
-	\item If we simply use the posterior mean instead of drawing sample from posterior distribution in this algorithm, this may not give enough chance to exploration.
+	\item Note that $S_{a,t}$ and $F_{a,t}$ depend on time, but we
+          suppressed the subscript $t$.
+	\item For exploration, UCB  uses an explicit formula while
+          Thompson sampling seems to explore using its posterior
+          distribution. The search for unifying principles behind UCB
+          and TS algorithms continues. See, e.g., the work of Russo
+          and Van Roy \cite{russo2014learning}. 
+        \item As you
+          get more samples, the posterior distributions for suboptimal arms will be eventually get separated from those for the optimal arm.
+	\item If we simply use the posterior mean instead of drawing a
+          sample from the posterior distribution, we might not explore
+          enough. 
 \end{itemize}
 
 \subsection{Theorem for Thompson Sampling}
-This algorithm dates back to 1933 \cite{thompson1933likelihood}, but the first finite time regret analysis appeared only in 2012 \cite{agrawal2012analysis}. Our presentation of TS and its proof will follow a later paper \cite{agrawal2013further}.
+This algorithm dates back to 1933 \cite{thompson1933likelihood} but the first finite time regret analysis appeared only in 2012 \cite{agrawal2012analysis}. Our presentation of TS and its proof will follow a later paper \cite{agrawal2013further}.
 \begin{theorem}
-	Assume Bernoulli reward distribution for the K arms with means $\mu_0,\cdots,\mu_{K-1}$, where $\mu_0 > max_{a \geq 1}\mu_a$. Then for any $\varepsilon$, 
+Assume Bernoulli reward distributions for the $K$ arms with means $\mu_0,\cdots,\mu_{K-1}$, where $\mu_0 > max_{a \geq 1}\mu_a$. Then for any $\varepsilon$,
 	\begin{align*}
 	R_T(\text{TS with Beta},(\distfam)_{a\in\actions} ) \leq (1+\varepsilon)\sum_{a=1}^{K-1}\frac{\log{T}}{d(\mu_a,\mu_0)}\Delta_a +O(\frac{K}{\varepsilon^2})
 	\end{align*}
 	where $d(\mu_a, \mu_0)$ := $\mu_a \log{\frac{\mu_a}{\mu_0}}+(1-\mu_a)\log{\frac{1-\mu_a}{1-\mu_0}}$.
 \end{theorem}
-\noindent \textbf{Note}: By Pinsker's inequality, $d(\mu_a, \mu_0)$ $\geq$ $2(\mu_a - \mu_0)^2=2\Delta_a^2$. 
+
+\noindent Comments:
 \begin{itemize}
-	\item Order of last term in this inequality actually involves $\mu$ and $\Delta_a$, which are from distribution and make our bound complicated.
-	\item $d(\mu_a,\mu_0)$ can blow up if optimal arm is deterministic. `Deterministic' here means always zero or one because we are in setting of Bernoulli. 
+\item Note that by Pinsker's inequality, $d(\mu_a, \mu_0) \geq$ $2(\mu_a - \mu_0)^2=2\Delta_a^2$.
+\item The last term in this inequality actually involves $\mu$ and $\Delta_a$, which make our bound complicated.
+\item $d(\mu_a,\mu_0)$ can blow up if the optimal arm is
+  deterministic, i.e. equal to zero or one with probability
+          one. 
 	\item At the end of class, there was a discussion on KL-UCB \cite{garivier2011kl} whose finite time bound matches, up to constants, the asymptotic lower bound of Lai and Robbins \cite{lai1985asymptotically}
 \end{itemize}
-
 		
 \bibliography{stats710}
 \end{document} 
