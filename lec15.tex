@@ -48,26 +48,26 @@ are i.i.d., so explicitly denoting dependence on the index $j$ is not strictly r
 
 In Lecture 14, we saw that 
 \[
-	\pi_{T-t}^{*}(s) := \argmax_{a} r_{a}(s) + \sum_{s'} p_{a}(s,s') V_{\pi^{*}_{T-t}}^{t-1}(s'),
+	\pi_{T-t}^{*}(s) := \argmax_{a} r_{a}(s) + \sum_{s'} p_{a}(s,s') V_{\pi^{*}_{T-t+1}}^{t-1}(s'),
 \]
-where $V_{\pi^*_{T-t}}^{t}(s) := \max_{a} r_{a}(s) + \sum_{s'} p_{a}(s,s') V_{\pi^{*}_{T-t}}^{t-1}(s')$.
+where $V_{\pi^*_{T-t}}^{t}(s) := \max_{a} r_{a}(s) + \sum_{s'} p_{a}(s,s') V_{\pi^{*}_{T-t+1}}^{t-1}(s')$.
 
 \section{Auer's UCB Finite-Horizon Reinforcement Learning}
-We follow Auer and Ortner and introduce a UCB-type algorithm for the reinforcement learning problem \cite{auer2005online}. We make several simplifications. First, we restrict the within-episode horizon to $T=2$, and consider binary state and action spaces, $\left|\actions\right| = \left|\states\right| = 2$. Let $M$ be the number of episodes. Denote by $\pi^{m} = \left(\pi_{0}^{m}, \pi_{1}^{m}\right)^\top$ the policy learned over the past $m-1$ episodes which is applied in the $m^{\text{th}}$ episode. $\pi^{m}$ is a function of the history through the $m-1$ prior episodes, $\history_{m-1} = \left\{S_{j,0}, A_{i,0}, S_{j,1}, A_{j,1}, S_{j,2} : i<m\right\}$.
+We follow Auer and Ortner and introduce a UCB-type algorithm for the reinforcement learning problem \cite{auer2005online}. We make several simplifications. First, we restrict the within-episode horizon to $T=2$, and consider binary state and action spaces, $\left|\actions\right| = \left|\states\right| = 2$. Let $M$ be the number of episodes. Denote by $\pi^{m} = \left(\pi_{0}^{m}, \pi_{1}^{m}\right)^\top$ the policy learned over the past $m$ episodes which is applied in the $m+1^{\text{th}}$ episode. $\pi^{m}$ is a function of the history through the $m$ prior episodes, $\history_{m+1} = \left\{S_{j,0}, A_{j,0}, S_{j,1}, A_{j,1}, S_{j,2} : j \leq m\right\}$.
 
 Auer's modified UCB algorithm is of the following form:
 \begin{algorithmic}[1]
 	\FOR{$j=1$ \TO $M$}
 		\STATE Learner sees $S_{j,0} = s_{0}$
 		\FOR{$t=0$ \TO $T-1$}
-			\STATE Learner selects $A_{j,t}$ using $\pi^{j}$
+			\STATE Learner selects $A_{j,t}$ using $\pi^{j-1}$
 			\STATE Learner receives $S_{j,t+1}$
 			\STATE Learner forms reward $R_{j,t} = R\left(S_{j,t}, A_{j,t}, S_{j,t+1}\right)$
 		\ENDFOR
-		\STATE Learner forms $\pi^{j+1}$ from $j$ prior episodes.
+		\STATE Learner forms $\pi^{j}$ from $j$ prior episodes.
 	\ENDFOR
 \end{algorithmic}
-Notice that the starting state $s_{0}$ in line 2 does not depend on $j$: the same starting state is used for each episode. The UCB part of the algorithm comes in line 8, when the learner forms $\pi^{j+1}$. 
+Notice that the starting state $s_{0}$ in line 2 does not depend on $j$: the same starting state is used for each episode. The UCB part of the algorithm comes in line 8, when the learner forms $\pi^{j}$. 
 
 Typically, we require $j=M_{0}$ episodes are run to ensure that we see every state-action pair $(s,a) \in \states\times\actions$. This is non-trivial, and makes an assumption that transition probabilities are bounded away from 0 and 1. We ignore this in the following.
 
@@ -94,52 +94,52 @@ is used to form transition probabilities. We now define the UCB versions of two 
 \end{equation}
 is the UCB version of the conditional expectation of the immediate reward, and
 \begin{equation}
-	\tilde{p}_{a}(s,s') = \frac{p_{s,a,s'}^{m-1}}{N_{s,a}^{m-1}} + \sqrt{\frac{c\log m}{N_{s,a}^{m-1}}}
+	\tilde{p}_{a}^{m-1}(s,s') = \frac{p_{s,a,s'}^{m-1}}{N_{s,a}^{m-1}} + \sqrt{\frac{c\log m}{N_{s,a}^{m-1}}}
 \end{equation}
-is the na\"{i}ve UCB version of transition probabilities. We say na\"{i}ve since the $\tilde{p}_{a}(s,s')$ may not sum to 1. To account for this, Auer introduces the following transformation~\cite{auer2005online}:
+is the na\"{i}ve UCB version of transition probabilities. We say na\"{i}ve since the $\tilde{p}_{a}^{m-1}(s,s')$ may not sum to 1. To account for this, Auer introduces the following transformation~\cite{auer2005online}:
 \begin{equation}
 	\label{eq:ucb-modified-transition-prob1}
 	\begin{split}
-		\tilde{p}_{a}^{\pi_{1}, m-1}(s, 1) &={} \ind\left\{\tilde{r}_{\pi_{1}(1)}(1) \geq \tilde{r}_{\pi_{1}(0)}(0)\right\} \min\left\{1, \tilde{p}_{a}(s,1)\right\} \\
-		&\quad + \ind\left\{\tilde{r}_{\pi_{1}(1)}(1) < \tilde{r}_{\pi_{1}(0)}(0)\right\} \left(1 - \min\left\{1, \tilde{p}_{a}(s,0)\right\}\right).
+		\tilde{p}_{a}^{\pi_1, m-1}(s, 1) &={} \ind\left\{\tilde{r}^{m-1}_{\pi_{1}(1)}(1) \geq \tilde{r}^{m-1}_{\pi_{1}(0)}(0)\right\} \min\left\{1, \tilde{p}^{m-1}_{a}(s,1)\right\} \\
+		&\quad + \ind\left\{\tilde{r}^{m-1}_{\pi_{1}(1)}(1) < \tilde{r}^{m-1}_{\pi_{1}(0)}(0)\right\} \left(1 - \min\left\{1, \tilde{p}_{a}^{m-1}(s,0)\right\}\right).
 	\end{split}
 \end{equation}
-For a move from state $s$ into state $0$, we have $\tilde{p}_{a}^{\pi, m-1}(s,0) = 1- \tilde{p}_{a}^{\pi, m-1}(s,1)$.
-The motivation behind these transformations is to privilege in the UCB world the state that looks best in the next stage. Notice that these probabilities are dependent on the policy $\pi$.
+For a move from state $s$ into state $0$, we have $\tilde{p}_{a}^{\pi_1, m-1}(s,0) = 1- \tilde{p}_{a}^{\pi_1, m-1}(s,1)$.
+The motivation behind these transformations is to privilege the state that looks best in the next stage. Notice that these probabilities are dependent on the policy $\pi$.
 
 \subsection{Regret Bound for the UCB Learning Algorithm}
-Recall our earlier notation $\pi_{t}^{m}(s)$, used to denote the policy at time $t$ applied in the $m^\text{th}$ episode given state $s$. We define
+Recall our earlier notation $\pi_{t}^{m}(s)$, used to denote the policy at time $t$ applied in the $m+1^\text{th}$ episode given state $s$. We define
 \[
 	\pi_{1}^{m-1}(s) = \argmax_{a} \tilde{r}_{a}^{m-1}(s) = \argmax_{\pi_{1}} \tilde{V}_{\pi}^{1, m-1}(s),
 \]
-where $\tilde{V}_{\pi}^{1, m-1}(s) = \tilde{r}_{\pi_{1}^{m-1}(s)}^{m-1}(s)$, and
+where $\tilde{V}_{\pi_1}^{1, m-1}(s) = \tilde{r}_{\pi_{1}(s)}^{m-1}(s)$, and
 \[
-	\pi_{0}^{m-1}(s) = \argmax_{a} \tilde{r}_{a}^{m-1}(s) + \sum_{s'} \tilde{p}_{a}^{\pi_{1}, m-1}(s,s') \tilde{r}_{\pi_{1}^{m-1}(s')}^{m-1}.
+	\pi_{0}^{m-1}(s) = \argmax_{a} \tilde{r}_{a}^{m-1}(s) + \sum_{s'} \tilde{p}_{a}^{\pi_{1}^{m-1}, m-1}(s,s') \tilde{r}_{\pi_{1}^{m-1}(s')}^{m-1}(s').
 \]
 Define 
 \[
-	\tilde{V}_{\pi}^{2, m-1}(s) = \tilde{r}_{\pi_{0}(s)}^{m-1}(s) + \sum_{s'} \tilde{p}_{\pi_{0}(s)}^{\pi_{1}, m-1}(s,s') \tilde{r}_{\pi_{1}^{m-1}(s')}^{m-1}.
+	\tilde{V}_{\pi}^{2, m-1}(s) = \tilde{r}_{\pi_{0}(s)}^{m-1}(s) + \sum_{s'} \tilde{p}_{\pi_{0}(s)}^{\pi_{1}, m-1}(s,s') \tilde{r}_{\pi_{1}(s')}^{m-1}(s').
 \]
 The UCB algorithm uses $\pi_{1}^{m-1}(s)$ to select $A_{m,1}$ and $\pi_{0}^{m-1}(s)$ to select to $A_{m,0}$.
 
-We define the expected regret at episode $m$ as 
+We define the expected regret at episode $M$ as 
 \[
-	\regret_{m}\left(L, D, \Pi\right) = \mathbb{E}\left[\sum_{j=1}^{m} V_{\pi^{*}}^{2}(s_{0}) - \sum_{j=1}^{m} V_{\pi^{j}}^{2}(s_{0}) \right].
+	\regret_{M}\left(L, D, \Pi\right) = \mathbb{E}\left[\sum_{j=1}^{M} V_{\pi^{*}}^{2}(s_{0}) - \sum_{j=1}^{M} V_{\pi^{j-1}}^{2}(s_{0}) \right].
 \]
 Susan proposes the following bound, which may be improved upon.
 \begin{proposition}
-	$\regret_{m}(L, D, \Pi) = O\left(\log(m) / \min\left\{\Delta_{1}, \min_{s}\Delta_{0}(s)\right\}^{2}\right)$, where $\Delta_{1} = \min_{\pi\neq\pi^{*}} V_{\pi^*}^{2}(s_{0}) - V_{\pi}^{2}(s_{0})$ and $\Delta_{0}(s) = \min_{\pi_{1}\neq \pi_{1}^{*}} V_{\pi_{1}^{*}}^{1}(s) - V_{\pi_{1}}^{1}(s)$.
+	$\regret_{M}(L, D, \Pi) = O\left(\log(M) / \min\left\{\Delta_{1}, \min_{s}\Delta_{0}(s)\right\}^{2}\right)$, where $\Delta_{1} = \min_{\pi\neq\pi^{*}} V_{\pi^*}^{2}(s_{0}) - V_{\pi}^{2}(s_{0})$ and $\Delta_{0}(s) = \min_{\pi_{1}\neq \pi_{1}^{*}} V_{\pi_{1}^{*}}^{1}(s) - V_{\pi_{1}}^{1}(s)$.
 \end{proposition}
 
 \begin{proof}[Proof (first part plus sketch)] 
-	We start by expanding the definition of regret.
+	We start by working with the regret. Specifically the term inside the expectation.
 	\begin{align*}
-		\regret_{m} ={}& \sum_{m=1}^{M} V_{\pi^*}^{2}\left(s_{0}\right) - V_{\pi^{m-1}}^{2}\left(s_{0}\right) \\
+		& \sum_{m=1}^{M} V_{\pi^*}^{2}\left(s_{0}\right) - V_{\pi^{m-1}}^{2}\left(s_{0}\right) \\
 		={}& \sum_{m=1}^{M} V_{\pi^*}^{2}(s_{0}) - V_{\pi_{0}^{m-1}\pi_{1}^{*}}^{2}(s_{0}) + V_{\pi_{0}^{m-1}\pi_{1}^{*}}^{2}(s_{0}) - V_{\pi^{m-1}}^{2}(s_{0}) \\
 		={}& \sum_{m=1}^{M} \left(V_{\pi^*}^{2}(s_{0}) - V_{\pi_{0}^{m-1}\pi_{1}^{*}}^{2}(s_{0})\right) \mathbbm{1}\left\{A_{m,0} = \pi_{0}^{m-1}(s_{0})\right\} \\
-		&{}+ \left(V_{\pi_{0}^{m-1}\pi_{1}^{*}}^{2}(s_{0}) - V_{\pi^{m-1}}^{2}(s_{0})\right) \mathbbm{1}\left\{A_{m,1} = \pi_{1}^{m-1}(S_{m,1})\right\}.
+		&{}+ \left(V_{\pi_{0}^{m-1}\pi_{1}^{*}}^{2}(s_{0}) - V_{\pi^{m-1}}^{2}(s_{0})\right) \mathbbm{1}\left\{A_{m,1} = \pi_{1}^{m-1}(S_{m,1})\right\} = *.
 	\end{align*}
-	Notice that $V_{\pi^*}^{2}(s_{0}) \geq V_{\pi_{0}\pi_{1}^{*}}(s_{0})$ for all $\pi_{0}$ and $V_{\pi_0\pi_{1}^{*}}(s_{0}) \geq V_{\pi_{0}\pi_{1}}^{2}(s_{0})$ for all $\pi_{0}, \pi_{1}$. Now, define 
+	Notice that $V_{\pi^*}^{2}(s_{0}) \geq V_{\pi_{0}\pi_{1}^{*}}(s_{0})$ for all $\pi_{0}$ and $V^2_{\pi_0\pi_{1}^{*}}(s_{0}) \geq V_{\pi_{0}\pi_{1}}^{2}(s_{0})$ for all $\pi_{0}, \pi_{1}$. Now, define 
 	\[
 		\tilde{\Delta}_{0} = \max_{\pi_{0}\neq \pi_{0}^{*}} V_{\pi^*}^{2}(s_{0}) - V_{\pi_0\pi_1^*}^{2}(s_{0})
 	\]
@@ -149,20 +149,22 @@ Susan proposes the following bound, which may be improved upon.
 	\]
 	so we have
 	\begin{align*}
-		\regret_{m} \leq{}& \tilde{\Delta}_{0} \sum_{m=1}^{M} \mathbbm{1}\left\{A_{m,0} = \pi_{0}^{m-1}(s_{0})\right\} + \tilde{\Delta}_{1} \sum_{m=1}^{M} \mathbbm{1}\left\{A_{m,1} = \pi_{1}^{m-1}(S_{m,1})\right\} \\
-		\leq{}& \tilde{\Delta}_{0} \sum_{\pi_{0}\neq \pi_{0}^{*}}\sum_{m=1}^{M} \mathbbm{1}\left\{A_{m,0} = \pi_{0}^{m-1}(s_{0})\right\} + \tilde{\Delta}_{1} \sum_{\pi_{1}\neq\pi_{1}^{*}} \sum_{m=1}^{M} \sum_{s} \mathbbm{1}\left\{A_{m,1} = \pi_{1}^{m-1}(s), S_{m,1} = s\right\} \\
+		* \leq{}& \tilde{\Delta}_{0} \sum_{m=1}^{M} \mathbbm{1}\left\{A_{m,0} = \pi_{0}^{m-1}(s_{0})\right\} + \tilde{\Delta}_{1} \sum_{m=1}^{M} \mathbbm{1}\left\{A_{m,1} = \pi_{1}^{m-1}(S_{m,1})\right\} \\
+		\leq{}& \tilde{\Delta}_{0} \sum_{\pi_{0}\neq \pi_{0}^{*}}\sum_{m=1}^{M} \mathbbm{1}\left\{A_{m,0} = \pi_{0}(s_{0})\right\} + \tilde{\Delta}_{1} \sum_{\pi_{1}\neq\pi_{1}^{*}} \sum_{m=1}^{M} \sum_{s} \mathbbm{1}\left\{A_{m,1} = \pi_{1}(s), S_{m,1} = s\right\} \\
 		\leq{}& \tilde{\Delta}_{0} \sum_{\pi_{0}\neq\pi_{0}^*} \left(\ell_{0} + \sum_{m=1}^{M} \ind\left\{A_{m,0} = \pi_{0}(s_{0}) \cap N_{s_{0}\pi_{0}(s_{0})}^{m-1} \geq \ell_{0}\right\}\right) \\
-		&{}+ \tilde{\Delta}_{1} \sum_{\pi_{1} \neq \pi_{1}^{*}} \sum_{s} \left(\ell_{1} + \sum_{m=1}^{M} \ind\left\{A_{m,1} = \pi_{1}(s) \cup N_{s, \pi_{1}(s)}^{m-1} \geq \ell_{1}\right\}\right).
+		&{}+ \tilde{\Delta}_{1} \sum_{\pi_{1} \neq \pi_{1}^{*}} \sum_{s} \left(\ell_{1} + \sum_{m=1}^{M} \ind\left\{A_{m,1} = \pi_{1}(s) \cap N_{s, \pi_{1}(s)}^{m-1} \geq \ell_{1}\right\}\right).
 	\end{align*}
 	The last inequality holds because, for example,
 	\begin{align*}
-		\sum_{m=1}^{M} \mathbbm{1}\left\{A_{m,0} = \pi_{0}^{m-1}(s_{0})\right\} ={}& \sum_{m=1}^{M} \mathbbm{1}\left\{A_{m,0} = \pi_{0}^{m-1}(s_{0}) \cup N_{s{0},\pi_{0}(s_{0})}^{m-1} \geq \ell_{0}\right\} \\
-		&{}+ \sum_{m=1}^{M} \mathbbm{1}\left\{A_{m,0} = \pi_{0}^{m-1}(s_{0}) \cup N_{s{0},\pi_{0}(s_{0})}^{m-1} < \ell_{0}\right\},
+		\sum_{m=1}^{M} \mathbbm{1}\left\{A_{m,0} = \pi_{0}(s_{0})\right\} ={}& \sum_{m=1}^{M} \mathbbm{1}\left\{A_{m,0} = \pi_{0}(s_{0}) \cap N_{s_{0},\pi_{0}(s_{0})}^{m-1} \geq \ell_{0}\right\} \\
+		&{}+ \sum_{m=1}^{M} \mathbbm{1}\left\{A_{m,0} = \pi_{0}(s_{0}) \cap N_{s_{0},\pi_{0}(s_{0})}^{m-1} < \ell_{0}\right\},
 	\end{align*}
 	and the second sum is at most $\ell_{0}$. 
 	
-	The crux of this proof, which will be finished in a subsequent lecture, is ensuring we have enough data, i.e., enough observations of each state-action pair. We take $\ell_{1}\simeq 8\log M / \Delta_{1}$ and $\ell_{0} \simeq 8\log M / \Delta_{0}$. For the sums over $m$ of indicators, we take the expectation and show that they sum to a constant.
+	The crux of this proof, which will be finished in a subsequent lecture, is ensuring we have enough data, i.e., enough observations of each state-action pair. We take $\ell_{1}\simeq 8\log M / \Delta_{1}$ and $\ell_{0} \simeq 8\log M / \Delta_{0}$. For the sums over $m$ indicators, we take the expectation and show that they sum to a constant.
 \end{proof}
+
+Note: The theorem and proof will be slightly changed in the subsequent lecture (lecture 17) due to new insights.
 
 
 

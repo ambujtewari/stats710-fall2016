@@ -50,11 +50,11 @@ The general flow of information in a contextual bandit is
 	\STATE Learner receives reward $R_{j} = R_{j}^{A_{j}}$
 	\ENDFOR
 \end{algorithmic}
-The problem is how to choose a policy $\pi$ which selects actions $A_{j}$. 
+The problem is how to choose a policy $\pi$ which selects actions $A_{j}$ in order to maximize reward. 
 
 Define the space of possible policies by $\Pi = \actions^{\states}$. Recall that the optimal policy $\pi^{*}$ is that which maximizes the value function 
 \[
-	V_{\pi} = \mathbb{E}\left[R_{j}^{\pi\left(S_{j}\right)}\right] = \mathbb{E} \left[r_{\pi\left(S_{j}\right)}\left(S_{j}\right)\right].
+	V_{\pi} = \mathbb{E}\left[R_{j}^{\pi\left(S_{j}\right)}\right] = \mathbb{E} \left [ \mathbb{E}\left(R_{j}^{\pi\left(S_{j}\right)}|S_j\right) \right ] =\mathbb{E} \left[r_{\pi\left(S_{j}\right)}\left(S_{j}\right)\right].
 \]
 Define $V_{\pi^{*}} = \max_{\pi\in\Pi} V_{\pi}$.
 
@@ -77,7 +77,7 @@ At time $j$, the learning algorithm determines $A_{j}$. Usually, a policy $\hat{
 \[
 	\mathcal{H}_{j-1} = \left\{S_{i}, A_{i}, R_{i}^{A_{i}} : i<j \right\} \quad \text{(and sometimes additional randomness)}.
 \]
-We select $A_{j} = \hat{\pi}_{j}\left(S_{j}\right)$. 
+We select $A_{j} = \hat{\pi}_{j-1}\left(S_{j}\right)$. 
 
 Our goal is to device a learning algorithm $\la$ that achieves low expected regret,
 \begin{align*}
@@ -102,16 +102,16 @@ The distribution $D$ of the tuples is described by the initial state distributio
 \[
 	p_{a}\left(s, s'\right) = P\left(S_{j,t+1}^{A_{j,t}} = s' \mid S_{j,t}^{A_{j,t-1}} = s, A_{j,t} = a\right).
 \]
-Note that $p_{a}(s,s')$ does not depend on $t$. This is stationarity. We assume the Markovian property; namely, that for history $\tilde{\history}_{j,t} = \left\{S_{j,0}, A_{j,0}, \ldots, A_{j,t-2}, S_{j,t-1}^{A_{j,t-2}}\right\}$, 
+Note that $p_{a}(s,s')$ does not depend on $t$. This is stationarity. We assume the Markovian property; namely, that for history $\tilde{\history}_{j,t} = \left\{S_{j,0}, A_{j,0}, \ldots, A_{j,t-2}, S_{j,t-1}^{A_{j,t-2}}, A_{j,t-1} \right\}$, 
 \[
-	P\left(S_{j,t+1}^{A_{j,t}} =s \mid \tilde{\history}{j,t-1}, S_{j,t}^{A_{j,t-1}} = s, A_{j,t} = a\right) = p_{a}\left(s,s'\right).
+	P\left(S_{j,t+1}^{A_{j,t}} =s \mid \tilde{\history}_{j,t}, S_{j,t}^{A_{j,t-1}} = s, A_{j,t} = a\right) = p_{a}\left(s,s'\right).
 \]
 
 Our notion of reward is a generalized version of what has been used in the past. Define $R_{j,t} = R\left(S_{j, t}^{A_{j,t-1}}, A_{j,t}, S_{j,t+1}^{A_{j,t}}\right)$, where $R$ is some known function. In the bandit setting,
 \[
 	E\left[R_{j,t}\mid S_{j,t}^{A_{j,t-1}} = s, A_{j,t} = a\right] = \sum_{s'} R(s, a, s') p_{a}(s,s') := r_{a}(s). 
 \]
-The reward depends on the current state because the costs of taking a particular action may vary greatly with aspects of that current state. It also depends on the state following the action, since we wish to capitalize on states states which may lead to actions which give higher rewards later on.
+The reward depends on the current state because the costs of taking a particular action may vary greatly with aspects of that current state. It also depends on the state following the action, since we wish to capitalize on states which may lead to actions which give higher rewards later on.
 
 When $T = 1$ (as in the usual contextual bandit), the set of states is $\left\{S_{j,0}, \left\{S_{j,1}^{a_{0}}\right\}_{a_{0}\in\actions}\right\} = \left\{S_{j,0}, A_{j,0}, S_{j,1}\right\}$ and the reward received after the $j^{\text{th}}$ episode is $R_{j,0} = R\left(S_{j,0}, A_{j,0}, S_{j,1}\right)$.
 
@@ -136,10 +136,13 @@ Consider the policy space $\Pi = \left(\actions^{\states}\right)^{T}$. We redefi
 The optimal policy $\pi^{*}$ should maximize $V_{\pi}^{T}(s_{0})$.
 
 \begin{proposition}
-	The optimal policy $\pi^*(s)$ is that which, for every time $t=1,\ldots, T$, maximizes $r_{\pi(s)}(s) + \sum_{s'} p_{\pi(s)}(s,s') V_{\pi^*_{T-t}}^{t-1}(s')$, where $V_{\pi^*_{T-t}}^{t}(s)$ is defined to be $\max_{a} r_{a}(s) + \sum_{s'} p_{a}(s,s') V_{\pi^{*}_{T-t}}^{t-1}(s')$ and $V_{\pi^*_{0}}^{t}(s) := 0$.
+	The optimal policy $\pi^*(s)$ is that which, for every time $t=1,\ldots, T$, satisfies $\pi^*_{T-t}(s) = \argmax_a r_{a}(s) + \sum_{s'} p_{a}(s,s') V_{\pi^*_{T-t+1}}^{t-1}(s')$, where $V_{\pi^*_{T-t}}^{t}(s)$ is defined to be $\max_{a} r_{a}(s) + \sum_{s'} p_{a}(s,s') V_{\pi^{*}_{T-t+1}}^{t-1}(s')$ and $V_{\pi}^{0}(s) := 0$. Everything is defined recursively from t= 1 to t = T.
+	
+	
+	%$r_{\pi(s)}(s) + \sum_{s'} p_{\pi(s)}(s,s') V_{\pi^*_{T-t}}^{t-1}(s')$, where $V_{\pi^*_{T-t}}^{t}(s)$ is defined to be $\max_{a} r_{a}(s) + \sum_{s'} p_{a}(s,s') V_{\pi^{*}_{T-t}}^{t-1}(s')$ and $V_{\pi^*_{0}}^{t}(s) := 0$.
 \end{proposition}
 \begin{proof}
-	We begin with the definition of $\max_{\pi}V_{\pi}^{T}(s_0)$:
+	We begin with the definition of $\max_{\pi}V_{\pi}^{T}(s_0)$, even though we do not write it, below all expectations are conditional on $S_{j,0} = s_{0}$:
 	\begin{align*}
 		\max_{\pi} V_{\pi}^{T}\left(s_{0}\right) &= \max_{\pi_{0}} \max_{\pi_{1}} \cdots \max_{\pi_{T-1}} \mathbb{E}\left[\sum_{t=0}^{T-1} R_{j, t} \mid S_{j,0} = s_{0}\right] \\
 		&= \max_{\pi_{0}}\cdots \max_{\pi_{T-1}} \mathbb{E}_{A\sim\pi} \left[\sum_{t=0}^{T-2} R_{j,t} + \mathbb{E}\left[R_{j,T-1} \mid S_{j,T-1}, A_{j,T-1} = \pi_{T-1}\left(S_{j,T-1}\right)\right]\right] \numbereqn \label{eq:rl-pi*-step1}
@@ -147,25 +150,25 @@ The optimal policy $\pi^{*}$ should maximize $V_{\pi}^{T}(s_{0})$.
 	Notice that the internal expectation in~\cref{eq:rl-pi*-step1} can be rewritten as $r_{\pi_{T-1}(S_{j, T-1})}\left(S_{j,T-1}\right)$, and select $\pi_{T-1}^{*}(s) = \argmax_{a} r_{a}(s)$. Then we have
 	\begin{equation}
 		\label{eq:rl-pi*-V1}
-		\max_{\pi} V_{\pi}^{T}\left(s_{0}\right) \leq \max_{\pi_{0}}\cdots\max_{\pi_{T-2}} \mathbb{E}_{A\sim\pi} \left[\sum_{t=0}^{T-2} R_{j,t} + r_{\pi^{*}_{T-1}\left(S_{j,T-1}\right)}\right]
+		\max_{\pi} V_{\pi}^{T}\left(s_{0}\right) \leq \max_{\pi_{0}}\cdots\max_{\pi_{T-2}} \mathbb{E}_{A\sim\pi} \left[\sum_{t=0}^{T-2} R_{j,t} + r_{\pi^{*}_{T-1}\left(S_{j,T-1}\right)} \left(S_{j,T-1}\right)  \right]
 	\end{equation}
-	Define $V_{\pi}^{1}(s) = r_{\pi_{T-1}(s)}(s)$, so that $V_{\pi^{*}}^{1}(s) = r_{\pi_{T-1}^{*}(s)}(s)$. Now the right-hand side of~\cref{eq:rl-pi*-V1}, denoted RHS(\ref{eq:rl-pi*-V1}), is
+	Define $V_{\pi_{T-1}}^{1}(s) = r_{\pi_{T-1}(s)}(s)$, so that $V_{\pi_{T-1}^{*}}^{1}(s) = r_{\pi_{T-1}^{*}(s)}(s) = \max_{a} r_{a}(s)$. Now the right-hand side of~\cref{eq:rl-pi*-V1}, denoted RHS(\ref{eq:rl-pi*-V1}), is
 	\begin{align*}
-		\text{RHS(\ref{eq:rl-pi*-V1})} &= \max_{\pi_{0}}\cdots\max_{\pi_{T-2}} \mathbb{E}_{A\sim \pi}\left[ \sum_{t=0}^{T-2} R_{j, t} + V_{\pi^{*}}\left(S_{j, T-1}\right) \mid S_{j, 0} = s_{0} \right] \\
-		&\leq \max_{\pi_{0}} \cdots \max_{\pi_{T-2}} \mathbb{E}_{A\sim \pi} \left[\sum_{t=0}^{T-3} R_{j,t} + \mathbb{E}\left[ R_{j,T-2} + V_{\pi^{*}}^{1}\left(S_{j,T-1}\right) \mid S_{j,T-2}, A_{j,T-2} = \pi_{T-2}\left(S_{j,T-2}\right) \right]\right]. \numbereqn \label{eq:rl-pi*-step2}
+		\text{RHS(\ref{eq:rl-pi*-V1})} &= \max_{\pi_{0}}\cdots\max_{\pi_{T-2}} \mathbb{E}_{A\sim \pi}\left[ \sum_{t=0}^{T-2} R_{j, t} + V^1_{\pi_{T-1}^{*}}\left(S_{j, T-1}\right) \right] \\
+		&\leq \max_{\pi_{0}} \cdots \max_{\pi_{T-2}} \mathbb{E}_{A\sim \pi} \left[\sum_{t=0}^{T-3} R_{j,t} + \mathbb{E}\left[ R_{j,T-2} + V_{\pi_{T-1}^{*}}^{1}\left(S_{j,T-1}\right) \mid S_{j,T-2}, A_{j,T-2} = \pi_{T-2}\left(S_{j,T-2}\right) \right]\right]. \numbereqn \label{eq:rl-pi*-step2}
 	\end{align*}
 	As above, notice that the internal expectation in~\cref{eq:rl-pi*-step2} is equal to 
 	\[
-		r_{\pi_{T-2}\left(S_{j,T-2}\right)}\left(S_{j,T-2}\right) + \sum_{s'} p_{\pi_{T-2}\left(S_{j,T-2}\right)}\left(S_{j,T-2}, s'\right).
+		r_{\pi_{T-2}\left(S_{j,T-2}\right)}\left(S_{j,T-2}\right) + \sum_{s'} p_{\pi_{T-2}\left(S_{j,T-2}\right)}\left(S_{j,T-2}, s'\right) V_{\pi_{T-1}^{*}}^{1}\left(s'\right).
 	\]
-	Select $\pi_{T-2}^{*}(s) = \argmax_{a} \left(r_{a}(s) + \sum_{s'} p_{a}\left(s,s'\right) V_{\pi^*}(s')\right)$. Then
+	Select $\pi_{T-2}^{*}(s) = \argmax_{a} \left(r_{a}(s) + \sum_{s'} p_{a}\left(s,s'\right) V^1_{\pi^*_{T-1}}(s')\right)$. Then
 	\[
-		\text{RHS(\ref{eq:rl-pi*-step2})} \leq \max_{\pi_{0}} \cdots \max_{\pi_{T-3}} \mathbb{E}_{A\sim\pi} \left[ \sum_{t=0}^{T-3} R_{j,t} + V_{\pi^*}^{2}\left(S_{j,T-2}\right) \mid S_{j,0} = s_{0} \right],
+		\text{RHS(\ref{eq:rl-pi*-step2})} \leq \max_{\pi_{0}} \cdots \max_{\pi_{T-3}} \mathbb{E}_{A\sim\pi} \left[ \sum_{t=0}^{T-3} R_{j,t} + V_{\pi^*_{T-2}}^{2}\left(S_{j,T-2}\right) \right],
 	\]
-	where $V_{\pi^{*}}^{2} = \max_{a}\left(r_{a}(s) + \sum_{s'} p_{a}(s,s') V_{\pi^{*}}^{1}(s')\right)$. Continuing in this way, by iteratively defining
+	where $V_{\pi^{*}_{T-2}}^{2}(s) = \max_{a}\left(r_{a}(s) + \sum_{s'} p_{a}(s,s') V_{\pi^{*}_{T-1}}^{1}(s')\right)$. Continuing in this way, by iteratively defining
 	\begin{gather*}
-		\pi_{T-t}^{*}(s) := \argmax_{a} r_{a}(s) + \sum_{s'} p_{a}(s,s') V_{\pi^{*}_{T-t}}^{t-1}(s') \\
-		V_{\pi^*_{T-t}}^{t}(s) := \max_{a} r_{a}(s) + \sum_{s'} p_{a}(s,s') V_{\pi^{*}_{T-t}}^{t-1}(s')
+		\pi_{T-t}^{*}(s) := \argmax_{a} r_{a}(s) + \sum_{s'} p_{a}(s,s') V_{\pi^{*}_{T-t+1}}^{t-1}(s') \\
+		V_{\pi^*_{T-t}}^{t}(s) := \max_{a} r_{a}(s) + \sum_{s'} p_{a}(s,s') V_{\pi^{*}_{T-t+1}}^{t-1}(s')
 	\end{gather*}
 	for $t=3,\ldots,T$ we arrive at 
 	\[

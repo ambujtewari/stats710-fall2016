@@ -31,7 +31,7 @@ Susan Murphy and Ambuj Tewari}{Scribe: #4 }{Lecture #1: #3}}
 
 \begin{document}
 \scribe{6}{Sep 22, 2016}{Proof of The Upper Bound for \\Thompson Sampling with Beta Priors and Bernoulli Rewards}{Young Jung}
-\section{Uppoer Bound for Thompson Sampling with Beta Priors and Bernoulli Rewards}
+\section{Thompson Sampling with Beta Priors and Bernoulli Rewards}
 \subsection{Algorithm Description And Theorem Statement}
 Recall from last lecture:
 \begin{algorithm}
@@ -49,43 +49,47 @@ Recall from last lecture:
 
 \noindent This algorithm dates back to 1933 \cite{thompson1933likelihood}, but the first finite time regret analysis appeared only in 2012 \cite{agrawal2012analysis}. Our presentation of TS and its proof will follow a later paper \cite{agrawal2013further}. 
 \begin{theorem}
-	Assume Bernoulli reward distribution for the K arms with means $\mu_0,\cdots,\mu_{K-1}$, where $\mu_0 > max_{a \geq 1}\mu_a$. Then for any $\varepsilon$, 
+	Assume Bernoulli reward distributions for the $K$ arms with means $\mu_0,\cdots,\mu_{K-1}$, where $\mu_0 > max_{a \geq 1}\mu_a$. Then for any $\varepsilon$, 
 	\begin{align*}
 	R_T(\text{TS with Beta},(\distfam_a)_{a\in\actions} ) \leq (1+\varepsilon)\sum_{a=1}^{K-1}\frac{\log{T}}{d(\mu_a,\mu_0)}\Delta_a +O(\frac{K}{\varepsilon^2})
 	\end{align*}
 	where $d(\mu_a, \mu_0)$ := $\mu_a \log{\frac{\mu_a}{\mu_0}}+(1-\mu_a)\log{\frac{1-\mu_a}{1-\mu_0}}$.
 \end{theorem}
-\noindent \textbf{Note}: By Pinsker's inequality, $d(\mu_a, \mu_0)$ $\geq$ $2(\mu_a - \mu_0)^2=2\Delta_a^2$. The upper bound for UCB is worse than that for TS due to this inequality. 
+\noindent \textbf{Note}: By Pinsker's inequality, $d(\mu_a, \mu_0)$
+$\geq$ $2(\mu_a - \mu_0)^2=2\Delta_a^2$. The upper bound for UCB is
+worse than that of TS due to this inequality. 
 
-\subsection{Notation}
-Here are the summary of variables that are essential in the proof:
+\subsection{Notation and comments}
+
 \begin{itemize}
     \item $\theta_{a, t}$: draw from arm $a$'s posterior at time $t$. 
-    \item $S_{a, t}$: the number of successes (i.e., 1's) of arm $a$ upto and including time $t$.
-    \item $F_{a, t}$: the number of failures (i.e., 0's) of arm $a$ upto and including time $t$. 
-    \begin{itemize}
-        \item That is to say, $S_{a, t} + F_{a, t} = N_t(a)$, which is the number of times that arm $a$ is selected upto and including time $t$. 
-    \end{itemize}
+    \item $S_{a, t}$: the number of successes (i.e., ones) of arm $a$
+      up to and including time $t$.
+    \item $F_{a, t}$: the number of failures (i.e., zeroes) of arm $a$
+      up to and including time $t$. 
+    \item Note that $S_{a, t} + F_{a, t} = N_t(a)$, which is the
+      number of times that arm $a$ is selected up to and including time $t$. 
     \item $\hat{\mu}_{a, t-1} = \frac{\sum_{i=1, A_i = a}^{t-1}R_i^a}{N_{t-1}(a)+1} = \frac{S_{a, t-1}}{N_{t-1}(a) + 1}$
     \begin{itemize}
         \item Note that 1 is added to the denominator on purpose to prevent division by zero. 
     \end{itemize}
-    \item For each $a$ and given $\varepsilon>0$, we will introduce thresholds $x_a, y_a$ satisfying following conditions. 
+    \item For each $a$ and any $\varepsilon>0$, we will introduce thresholds $x_a, y_a$ satisfying following conditions. 
     \begin{itemize}
         \item $\mu_a < x_a < y_a < \mu_0$
         \item $d(x_a, \mu_0) = \frac{d(\mu_a, \mu_0)}{1 + \varepsilon}$
         \item $d(x_a, y_a) = \frac{d(x_a, \mu_0)}{1 + \varepsilon} = \frac{d(\mu_a, \mu_0)}{(1 + \varepsilon)^2}$
-        \item Note that we can always choose such thresholds due to continuity of KL-divergence. 
+        \item Note that we can always choose such thresholds due to the continuity of KL-divergence. 
     \end{itemize}
     \item $\mathcal{H}_t = \{A_1, R_1, \cdots, A_{t-1}, R_{t-1}\}$ history of actions and rewards \textit{before} time $t$. 
     \begin{itemize}
-        \item For consistency, we use $t$ for the subscription instead of $t-1$. 
+        \item For consistency, we use $t$ for the subscript instead of $t-1$. 
     \end{itemize}
     \item We introduce two events. 
     \begin{itemize}
         \item $E^\mu_{a, t} = \{\hat{\mu}_{a, t-1} \leq x_a\}$
         \item $E^\theta_{a, t} = \{\theta_{a, t} \leq y_a\}$
-        \item The idea is that two events are likely to happen when time goes on. 
+        \item The idea is that these two events are more likely to
+          happen as time progresses.
         \item Note that given $\mathcal{H}_t$, $E^\mu_{a, t}$ is determined to be either true of false and $E^\theta_{a, t}$ is still random, but the probability that it happens can be exactly calculated. 
     \end{itemize}
     \item $p_{a, t} := \mathbb{P}(\theta_{0, t} > y_a | \mathcal{H}_t)$
@@ -106,20 +110,16 @@ $$
     \begin{align*}
         \text{LHS} &= \mathbb{P}(A_t = a, E^\theta_{a, t} | \mathcal{H}_t) \\
         &= \mathbb{P}(A_t = a | E^\theta_{a, t}, \mathcal{H}_t) \mathbb{P}(E^\theta_{a, t} | \mathcal{H}_t) \\
-        \text{RHS} &= \frac{1 - p_{a, t}}{p_{a, t}} \mathbb{P}(A_t = 0| E^\theta_{a, t}, \mathcal{H}_t) \mathbb{P}(E^\theta_{a, t} | \mathcal{H}_t)
+        \text{RHS} &= \frac{1 - p_{a, t}}{p_{a, t}} \mathbb{P}(A_t = 0| E^\theta_{a, t}, \mathcal{H}_t) \mathbb{P}(E^\theta_{a, t} | \mathcal{H}_t).
     \end{align*}
-    
     Thus it suffices to prove that $\mathbb{P}(A_t = a | E^\theta_{a, t}, \mathcal{H}_t) \leq \frac{1 - p_{a, t}}{p_{a, t}} \mathbb{P}(A_t = 0| E^\theta_{a, t}, \mathcal{H}_t)$. 
-    
     Given $E^\theta_{a, t}$, $\{A_t = a\}$ implies that $\theta_{\tilde{a}, t} \leq y_a$ for any $\tilde{a} \in \actions$. Therefore, 
     \begin{align*}
         \text{LHS} &\leq \mathbb{P}(\forall \tilde{a}\in \actions, \theta_{\tilde{a}, t} \leq y_a | E^\theta_{a, t}, \mathcal{H}_t) \\ 
         &= \mathbb{P}(\theta_{0, t} \leq y_a | E^\theta_{a, t}, \mathcal{H}_t)\mathbb{P}(\forall \tilde{a} \neq 0, \theta_{\tilde{a}, t} \leq y_a | E^\theta_{a, t}, \mathcal{H}_t) \\
         &= (1 - p_{a, t})\mathbb{P}(\forall \tilde{a} \neq 0, \theta_{\tilde{a}, t} \leq y_a | E^\theta_{a, t}, \mathcal{H}_t)
     \end{align*}
-    The last equality holds because the event $\{\theta_{a, t} \leq y_a\}$ is independent with $E^\theta_{a, t}$. 
-    
-    Similarly, given $E^\theta_{a, t}$, $\{A_t = 0\}$ happens whenever $\theta_{0, t} > y_a$ and $\theta_{\tilde{a}, t} \leq y_a$ for any $\tilde{a} \neq 0$. This gives us
+    The last equality holds because the event $\{\theta_{a, t} \leq y_a\}$ is independent of $E^\theta_{a, t}$. Similarly, given $E^\theta_{a, t}$, $\{A_t = 0\}$ happens whenever $\theta_{0, t} > y_a$ and $\theta_{\tilde{a}, t} \leq y_a$ for any $\tilde{a} \neq 0$. This gives us
     \begin{align*}
         \text{RHS} &\geq \frac{1 - p_{a, t}}{p_{a, t}} \mathbb{P}(\theta_{0, t} > y_a, \theta_{\tilde{a}, t} \leq y_a \forall \tilde{a} \neq 0 | E^\theta_{a, t}, \mathcal{H}_t) \\
         &= (1- p_{a, t}) \mathbb{P}(\forall \tilde{a} \neq 0, \theta_{\tilde{a}, t} \leq y_a | E^\theta_{a, t}, \mathcal{H}_t)
@@ -128,7 +128,8 @@ $$
 \end{proof}
 		
 \subsection{(Incomplete) Proof of Theorem}
-We will start from well known identity of $N_T(a)$. 
+We will start by rewriting $N_T(a)$ as the sum of indicator variables
+and taking expectation. 
 \begin{align*}
     \mathbb{E}N_T(a) &= \sum_{t=1}^T \mathbb{P}(A_t = a) \\
     &= \sum_{t=1}^T [\mathbb{P}(A_t = a, E^\mu_{a, t}, E^\theta_{a, t}) + \mathbb{P}(A_t = a, E^\mu_{a, t}, \overline{E^\theta_{a, t}}) + \mathbb{P}(A_t = a, \overline{E^\mu_{a, t}})] \\
@@ -136,7 +137,8 @@ We will start from well known identity of $N_T(a)$.
 \end{align*}
 
 In this (incomplete) proof, we will focus on $S_1$ only. We will control $S_2
-$ and $S_2$ in the next lecture. To impose upper bound, we will use tower property several times. 
+$ and $S_2$ in the next lecture. To impose an upper bound, we will use
+the tower property of expectation several times. 
 
 \begin{align*}
     \mathbb{P}(A_t = a, E^\mu_{a, t}, E^\theta_{a, t}) &= \mathbb{E}[\mathbb{P}(A_t = a, E^\mu_{a, t}, E^\theta_{a, t}|\mathcal{H}_t)] (\because \text{tower property})\\
@@ -156,7 +158,9 @@ Let $\tau_k$ be the time at which action $0$ is taken for the $k^{th}$ time with
 
 The second inequality might not be equality because $k$ can be strictly less than $T-1$. The last equality holds because the second summation from the second line is exactly 1 by definition of $\tau_k$. 
 
-The lecture ended by stating following lemma without the proof. The proof requires extensive calculations involving Beta and Binomial distributions. See appendix of original paper \cite{agrawal2013further} for details. 
+The lecture ended by stating the following lemma without proof. The
+proof requires extensive calculations involving Beta and Binomial
+distributions. See the appendix of \cite{agrawal2013further} for details. 
 
 \begin{lemma}
 \begin{align*}
