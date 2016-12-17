@@ -35,7 +35,7 @@ Susan Murphy and Ambuj Tewari}{Scribe: #4}{Lecture #1: #3}}
 \section{Sequential Decision Making in mHealth}
 
 This course will focus on the use of sequential decision making algorithms in mobile health applications to enable long term health behavior change and maintenance.
-Behavior change can lead to improved health outcomes in many health conditions including cardiovascular diseases, substance abuse, and mental illnesses.
+Behavior change can lead to improved health outcomes in many health conditions, including cardiovascular diseases, substance abuse, and mental illnesses.
 The promise of mobile health is that tailored interventions can be delivered to users at the right time, in the right context, as they go about living their daily lives.
 
 The basic sequential decision making protocol in mobile health is as follows.
@@ -59,17 +59,17 @@ $0$, i.e., don't provide a suggestion. The proximal outcome or reward is the num
 In this course we will look at increasingly sophisticated methods to sequentially choose actions to maximize sum of received rewards. The first class of methods, called {\em multi-armed bandits}, apply in situations
 where there is no contextual information available to guide action selection. This is not a realistic case in mHealth application but serves as a foundation for more sophisticated methods. 
 The second class of methods, called {\em contextual bandits}, do take into account contextual information but do not reason about delayed effects of actions on future contexts. Delayed effects can easily
-occur in mHealth applications. E.g., providing a too many suggestions to the user can affect the burden involved in using the app and reduce effectiveness of future suggestions since they might be ignored by the user.
-Finally we will look at general {\em reinforcement learning} algorithms that do take into account delayed effects.
+occur in mHealth applications, e.g., providing too many suggestions to the user can affect the burden involved in using the app and reduce effectiveness of future suggestions since they might be ignored by the user.
+Finally, we will look at general {\em reinforcement learning} algorithms that do take into account delayed effects.
 
 \section{Multiarmed Bandits: Regret and Basic Definitions}
 
-The name ``bandits" comes from ``one-armed bandit" which refers a slot machine in casinos operated by pulling a long arm at the side. These machines rob you of your money and hence the name ``bandits"!
-Now imagine having several arms to choose from. You do not know which arms are good and which ones are bad. So you will have \emph{explore} new arms in the hope of finding good ones that have not been used much
-so far but also \emph{exploit} your knowledge from previous rounds to stick to ones that have performed well in the past.
+The name ``bandits" comes from ``one-armed bandit" which refers a slot machine in casinos operated by pulling a long arm at the side. These machines rob you of your money, hence the name ``bandits"!
+Now imagine having several arms to choose from. You do not know which arms are good and which ones are bad. So you will have to \emph{explore} new arms in the hope of finding good ones that have not been used much
+so far, but also \emph{exploit} your knowledge from previous rounds to stick to ones that have performed well in the past.
 
 Robbins \cite{robbins1952some} originally formalized the problem that we now refer to as multiarmed bandit. We will use ``action" and ``arm" interchangeably. He considered the case of two actions
-but it is not too difficult to extend the framework to consider a set of $K$ actions $\actions = \{0,1,\ldots,K-1\}$. To each action $a \in \actions$, we attach a distribution $D_a$. Assume that $D_a$ has finite mean $\mu_a$ and
+but it is not too difficult to extend the framework to consider a set of $K$ actions $\actions = \{0,1,\ldots,K-1\}$. To each action $a \in \actions$ we attach a distribution $D_a$. Assume that $D_a$ has finite mean $\mu_a$ and
 consider a sequence of iid random variables
 \[
 R^a_1,R^a_2,\ldots
@@ -137,7 +137,7 @@ Consider the following learning algorithm that is referred to as ``certainty equ
 \[
 \tau_{a,1} < \tau_{a,2} < \ldots
 \]
-such that the time points are disjoint over $a \in \actions$ and $t_{a,1} = a-1$ (i.e., we start by selecting each action from $0$ through $K-1$ once). At any given time point $t$, if it one
+such that the time points are disjoint over $a \in \actions$ and $\tau_{a,1} = a+1$ (i.e., we start by selecting each action from $0$ through $K-1$ once). At any given time point $t$, if it is one
 of the forced exploration time points for an action $a$, select action $a$. Otherwise, form estimates $\hat{\mu}_{t-1,a}$ of $\mu_a$ using the sample mean over all previous exploration rounds for action $a$, and select the
 one with maximum value of $\hat{\mu}_{t-1,a}$ (breaking ties, say, in favor of the numerically smaller action).
 
